@@ -1,5 +1,5 @@
 {
-  "name": "youtube-playlist-import",
+  "name": "sp-youtube-playlist-to-tasks",
   "version": "1.3.0",
   "private": true,
   "description": "Super Productivity plugin that imports a YouTube playlist as a task with one subtask per video.",

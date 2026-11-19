@@ -1,4 +1,4 @@
-# YouTube playlists
+# YouTube Playlist to Tasks for Super Productivity
 
 A Super Productivity plugin. Paste a playlist, look through its videos, then import the ones
 you want. Every video becomes a subtask with its own link, and the playlist link goes on the

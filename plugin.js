@@ -693,7 +693,7 @@ async function refreshEntry(entry) {
     if (visible) {
       api.showSnack({ msg: body, type: 'INFO', ico: 'playlist_play' });
     } else {
-      api.notify({ title: 'YouTube playlists', body: body, ico: 'playlist_play' });
+      api.notify({ title: 'YouTube Playlist to Tasks', body: body, ico: 'playlist_play' });
     }
   } catch (e) {
     /* snack and notify are cosmetic */

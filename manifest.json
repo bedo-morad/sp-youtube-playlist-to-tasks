@@ -1,6 +1,6 @@
 {
   "id": "youtube-playlist-import",
-  "name": "YouTube playlists",
+  "name": "Playlist to Tasks",
   "version": "1.3.0",
   "manifestVersion": 1,
   "minSupVersion": "19.3.1",
