@@ -1,0 +1,1100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>YouTube playlists</title>
+    <style>
+      /* Colours, type and spacing come from the host's tokens, which the app
+         injects into this iframe and rewrites when the theme changes. The
+         fallbacks only matter on hosts older than those tokens. */
+      :root {
+        --fg: var(--text-color, #1d1d1f);
+        --fg-muted: var(--text-color-muted, #6b6b70);
+        --border: var(--input-border-color, rgba(0, 0, 0, 0.22));
+        --border-soft: var(--extra-border-color, rgba(0, 0, 0, 0.12));
+        --border-focus: var(--input-border-color-focus, var(--c-primary, #3b78d8));
+        --input-bg: var(--input-bg, transparent);
+        --accent: var(--c-primary, #3b78d8);
+        --accent-fg: var(--button-primary-label, #fff);
+        --danger: var(--color-danger, #c0392b);
+        --success: var(--color-success, #1f8a4c);
+        --hover: var(--state-hover, rgba(0, 0, 0, 0.05));
+        --radius: var(--radius-md, 8px);
+        --gap: var(--s3, 20px);
+        --ease: var(--transition-standard, 150ms ease);
+        --mono: var(--font-mono-stack, ui-monospace, SFMono-Regular, Menlo, monospace);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      html {
+        color-scheme: light;
+      }
+
+      body {
+        margin: 0;
+        padding: 28px 22px 40px;
+        font-family: var(--font-primary-stack, system-ui, sans-serif);
+        font-size: var(--font-size-md, 14px);
+        line-height: 1.55;
+        color: var(--fg);
+        background: transparent;
+      }
+
+      .panel {
+        max-width: 580px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      .lede {
+        margin: 0;
+        color: var(--fg-muted);
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 0;
+      }
+
+      label {
+        font-size: var(--font-size-sm, 13px);
+        font-weight: var(--font-weight-medium, 500);
+      }
+
+      .optional {
+        font-weight: 400;
+        color: var(--fg-muted);
+      }
+
+      input[type='text'],
+      select {
+        width: 100%;
+        min-width: 0;
+        padding: 9px 11px;
+        font: inherit;
+        color: var(--fg);
+        background-color: var(--input-bg);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        transition: border-color var(--ease);
+      }
+
+      input[type='text']:hover,
+      select:hover:not(:disabled) {
+        border-color: var(--fg-muted);
+      }
+
+      input[type='text']:focus,
+      select:focus {
+        outline: none;
+        border-color: var(--border-focus);
+        box-shadow: 0 0 0 1px var(--border-focus);
+      }
+
+      select:disabled {
+        opacity: 0.55;
+      }
+
+      /* The native dropdown takes its palette from the root color-scheme, which
+         the script below sets. These rules keep the closed control and the open
+         rows on the host's colours as well. */
+      select option {
+        background-color: var(--bg, #fff);
+        color: var(--fg);
+      }
+
+      .row {
+        display: flex;
+        gap: 10px;
+        align-items: stretch;
+      }
+
+      .row input {
+        flex: 1 1 auto;
+        font-size: var(--font-size-lg, 15px);
+        padding: 11px 13px;
+      }
+
+      .row button {
+        flex: 0 0 auto;
+      }
+
+      button {
+        padding: 10px 18px;
+        font: inherit;
+        font-weight: var(--font-weight-medium, 500);
+        color: var(--accent-fg);
+        background: var(--accent);
+        border: 1px solid transparent;
+        border-radius: var(--radius);
+        cursor: pointer;
+        transition: filter var(--ease), background-color var(--ease);
+      }
+
+      button:hover:not(:disabled) {
+        filter: brightness(1.08);
+      }
+
+      button:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+
+      button:disabled {
+        opacity: 0.55;
+        cursor: default;
+      }
+
+      button.ghost {
+        color: var(--fg);
+        background: transparent;
+        border-color: var(--border);
+      }
+
+      button.ghost:hover:not(:disabled) {
+        filter: none;
+        background: var(--hover);
+      }
+
+      button.mini {
+        padding: 4px 10px;
+        font-size: var(--font-size-xs, 12px);
+      }
+
+      .pair {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--gap);
+      }
+
+      .mt {
+        margin-top: 16px;
+      }
+
+      details.options {
+        border-top: 1px solid var(--border-soft);
+        padding-top: 14px;
+      }
+
+      details.options summary {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        font-size: var(--font-size-sm, 13px);
+        font-weight: var(--font-weight-medium, 500);
+        color: var(--fg-muted);
+        cursor: pointer;
+        list-style: none;
+      }
+
+      details.options summary::-webkit-details-marker {
+        display: none;
+      }
+
+      details.options summary::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-right: 2px solid currentColor;
+        border-bottom: 2px solid currentColor;
+        transform: rotate(-45deg);
+        transition: transform var(--ease);
+      }
+
+      details.options[open] summary::before {
+        transform: rotate(45deg);
+      }
+
+      details.options summary:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+        border-radius: 4px;
+      }
+
+      .options-body {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding-top: 14px;
+      }
+
+      .check {
+        display: flex;
+        gap: 9px;
+        align-items: flex-start;
+        font-size: var(--font-size-sm, 13px);
+        font-weight: 400;
+        color: var(--fg);
+      }
+
+      .check input {
+        margin: 3px 0 0;
+        accent-color: var(--accent);
+      }
+
+      .check .hint {
+        display: block;
+        color: var(--fg-muted);
+        font-size: var(--font-size-xs, 12px);
+      }
+
+      .status {
+        margin: 0;
+        min-height: 1.55em;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .status.error {
+        color: var(--danger);
+      }
+
+      .status.done {
+        color: var(--success);
+      }
+
+      /* preview */
+
+      .preview-head {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .preview-head h1 {
+        margin: 0;
+        font-size: var(--font-size-lg, 17px);
+        font-weight: var(--font-weight-semibold, 600);
+        line-height: 1.35;
+      }
+
+      .preview-head h1:focus {
+        outline: none;
+      }
+
+      .warn {
+        color: var(--danger);
+      }
+
+      .meta {
+        margin: 0;
+        color: var(--fg-muted);
+        font-size: var(--font-size-sm, 13px);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .toolbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding-bottom: 4px;
+      }
+
+      .toolbar .count {
+        margin-left: auto;
+        color: var(--fg-muted);
+        font-size: var(--font-size-xs, 12px);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        max-height: 46vh;
+        overflow-y: auto;
+        border-top: 1px solid var(--border-soft);
+        border-bottom: 1px solid var(--border-soft);
+      }
+
+      .list li {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        padding: 9px 4px;
+        border-bottom: 1px solid var(--border-soft);
+      }
+
+      .list li:last-child {
+        border-bottom: 0;
+      }
+
+      .list input {
+        margin: 4px 0 0;
+        accent-color: var(--accent);
+        flex: 0 0 auto;
+      }
+
+      .list .text {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+
+      .list .title {
+        display: block;
+        overflow-wrap: anywhere;
+      }
+
+      .list .sub {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        color: var(--fg-muted);
+        font-size: var(--font-size-xs, 12px);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .list li.off .title {
+        color: var(--fg-muted);
+      }
+
+      .badge {
+        flex: 0 0 auto;
+        align-self: center;
+        padding: 1px 7px;
+        font-size: var(--font-size-xs, 12px);
+        color: var(--fg-muted);
+        border: 1px solid var(--border-soft);
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+
+      .actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding-top: 2px;
+      }
+
+      .actions .grow {
+        flex: 1 1 auto;
+      }
+
+      /* watched playlists */
+
+      .watched {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        border-top: 1px solid var(--border-soft);
+        padding-top: 18px;
+      }
+
+      .watched-head {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+      }
+
+      .watched h2 {
+        margin: 0;
+        font-size: var(--font-size-sm, 13px);
+        font-weight: var(--font-weight-semibold, 600);
+      }
+
+      .watched-head .spacer {
+        flex: 1 1 auto;
+      }
+
+      .watched ul {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .watched li {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        padding: 7px 10px;
+        border: 1px solid var(--border-soft);
+        border-radius: var(--radius);
+      }
+
+      .watched .name {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .watched .when {
+        color: var(--fg-muted);
+        font-size: var(--font-size-xs, 12px);
+        white-space: nowrap;
+      }
+
+      .watched .failed {
+        color: var(--danger);
+      }
+
+      .foot {
+        margin: 0;
+        font-size: var(--font-size-xs, 12px);
+        color: var(--fg-muted);
+      }
+
+      @media (max-width: 540px) {
+        .pair {
+          grid-template-columns: 1fr;
+        }
+        .row {
+          flex-wrap: wrap;
+        }
+        .row button {
+          width: 100%;
+        }
+        .list {
+          max-height: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="panel">
+      <!-- Step one: what to fetch and how to write it. -->
+      <section id="step-one" class="step">
+        <p class="lede">
+          Paste a playlist and look through its videos before anything is written to your
+          tasks.
+        </p>
+
+        <form id="fetch-form">
+          <div class="field">
+            <label for="url">Playlist link</label>
+            <div class="row">
+              <input
+                id="url"
+                type="text"
+                spellcheck="false"
+                autocomplete="off"
+                placeholder="https://www.youtube.com/playlist?list=…"
+              />
+              <button id="fetch" type="submit">Fetch</button>
+            </div>
+          </div>
+
+          <div class="pair mt">
+            <div class="field">
+              <label for="name">Task name <span class="optional">optional</span></label>
+              <input id="name" type="text" placeholder="Use the playlist name" />
+            </div>
+            <div class="field">
+              <label for="project">Project</label>
+              <select id="project">
+                <option value="">Inbox</option>
+              </select>
+            </div>
+          </div>
+
+          <details class="options mt">
+            <summary>Options</summary>
+            <div class="options-body">
+              <label class="check">
+                <input id="links" type="checkbox" checked />
+                <span>
+                  Attach links
+                  <span class="hint">The playlist link goes on the task, and each video link on its subtask.</span>
+                </span>
+              </label>
+
+              <label class="check">
+                <input id="estimates" type="checkbox" />
+                <span>
+                  Set time estimates from video lengths
+                  <span class="hint">Each subtask gets its video's length. The main task gets none, so the total is not counted twice.</span>
+                </span>
+              </label>
+
+              <label class="check">
+                <input id="new-project" type="checkbox" />
+                <span>
+                  Create a project named after the playlist
+                  <span class="hint">The task goes into that new project instead of the one above.</span>
+                </span>
+              </label>
+
+              <label class="check">
+                <input id="auto-refresh" type="checkbox" />
+                <span>
+                  Check for new videos every 6 hours
+                  <span class="hint">Runs while the app is open. New uploads are added as subtasks.</span>
+                </span>
+              </label>
+
+              <label class="check">
+                <input id="update" type="checkbox" checked />
+                <span>
+                  Add new videos to the existing task
+                  <span class="hint">Turn this off to make a second, separate task from the same playlist.</span>
+                </span>
+              </label>
+            </div>
+          </details>
+        </form>
+
+        <p id="status-one" class="status" role="status" aria-live="polite"></p>
+      </section>
+
+      <!-- Step two: the preview. Nothing is written until the button below. -->
+      <section id="step-two" class="step" hidden>
+        <div class="preview-head">
+          <h1 id="pv-title" tabindex="-1"></h1>
+          <p id="pv-meta" class="meta"></p>
+          <p id="pv-warn" class="meta warn" hidden></p>
+        </div>
+
+        <div class="toolbar">
+          <button id="select-all" type="button" class="ghost mini">Select all</button>
+          <button id="select-none" type="button" class="ghost mini">Select none</button>
+          <span id="pv-count" class="count" aria-live="polite"></span>
+        </div>
+
+        <ul id="pv-list" class="list" aria-label="Videos in this playlist"></ul>
+
+        <div class="actions">
+          <button id="back" type="button" class="ghost">Back</button>
+          <span class="grow"></span>
+          <button id="apply" type="button">Add videos</button>
+        </div>
+
+        <p id="status-two" class="status" role="status" aria-live="polite"></p>
+      </section>
+
+      <!-- Playlists the background half re-checks on its own. -->
+      <section id="watched" class="watched" hidden>
+        <div class="watched-head">
+          <h2>Checked automatically</h2>
+          <span class="spacer"></span>
+          <button id="check-now" type="button" class="ghost mini">Check now</button>
+        </div>
+        <ul id="watched-list"></ul>
+        <p id="status-watched" class="status" role="status" aria-live="polite"></p>
+      </section>
+
+      <p class="foot">
+        Reads the public playlist page, with no Google account or API key. Desktop app only.
+      </p>
+    </main>
+
+    <script>
+      (() => {
+        const $ = (id) => document.getElementById(id);
+        const host = () => window.PluginAPI;
+
+        const playlistUrl = (id) => 'https://www.youtube.com/playlist?list=' + id;
+        const count = (n, one, many) => n + ' ' + (n === 1 ? one : many);
+
+        /* Messages to plugin.js. The host forwards PLUGIN_MESSAGE to the plugin's
+           onMessage handler and posts the answer back into this iframe. */
+        const send = (message, timeout) =>
+          new Promise((resolve, reject) => {
+            const messageId =
+              'ytp-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+            let timer = null;
+
+            const onMessage = (event) => {
+              const data = event.data || {};
+              if (event.source !== window.parent) return;
+              if (data.messageId !== messageId) return;
+              if (
+                data.type !== 'PLUGIN_MESSAGE_RESPONSE' &&
+                data.type !== 'PLUGIN_MESSAGE_ERROR'
+              ) {
+                return;
+              }
+              window.clearTimeout(timer);
+              window.removeEventListener('message', onMessage);
+              if (data.type === 'PLUGIN_MESSAGE_RESPONSE') resolve(data.result);
+              else reject(new Error(data.error || 'The plugin did not answer.'));
+            };
+
+            timer = window.setTimeout(() => {
+              window.removeEventListener('message', onMessage);
+              reject(
+                new Error(
+                  'The background part of the plugin did not answer. Reload the app, then try again.',
+                ),
+              );
+            }, timeout || 20000);
+
+            window.addEventListener('message', onMessage);
+            window.parent.postMessage({ type: 'PLUGIN_MESSAGE', messageId, message }, '*');
+          });
+
+        function parsePlaylistId(raw) {
+          const s = String(raw || '').trim();
+          if (!s) return null;
+          if (/^[A-Za-z0-9_-]{10,}$/.test(s)) return s;
+          const m = /[?&]list=([A-Za-z0-9_-]+)/.exec(s);
+          return m ? m[1] : null;
+        }
+
+        const formatDuration = (sec) => {
+          if (!sec) return '';
+          const h = Math.floor(sec / 3600);
+          const m = Math.floor((sec % 3600) / 60);
+          const s = sec % 60;
+          const pad = (n) => String(n).padStart(2, '0');
+          return h ? h + ':' + pad(m) + ':' + pad(s) : m + ':' + pad(s);
+        };
+
+        const formatSpan = (sec) => {
+          if (!sec) return '';
+          const h = Math.floor(sec / 3600);
+          const m = Math.round((sec % 3600) / 60);
+          if (h && m) return h + 'h ' + m + 'm';
+          if (h) return h + 'h';
+          return m + 'm';
+        };
+
+        const ago = (ms) => {
+          if (!ms) return 'not checked yet';
+          const diff = Date.now() - ms;
+          const min = Math.round(diff / 60000);
+          if (min < 1) return 'checked just now';
+          if (min < 60) return 'checked ' + min + 'm ago';
+          const hours = Math.round(min / 60);
+          if (hours < 24) return 'checked ' + hours + 'h ago';
+          return 'checked ' + Math.round(hours / 24) + 'd ago';
+        };
+
+        function setStatus(id, msg, kind) {
+          const el = $(id);
+          el.textContent = msg || '';
+          el.className = 'status' + (kind ? ' ' + kind : '');
+        }
+
+        /* Native form controls pick their palette from the document's
+           color-scheme, not from CSS variables, so it has to be set from the
+           theme flag the host injects. */
+        function applyTheme() {
+          const root = document.documentElement;
+          const injected = getComputedStyle(root).getPropertyValue('--is-dark-theme').trim();
+          const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          const dark = injected === '1' || (injected === '' && systemDark);
+          root.style.colorScheme = dark ? 'dark' : 'light';
+        }
+
+        applyTheme();
+        const themeStyle = document.getElementById('injected-theme-vars');
+        if (themeStyle) {
+          new MutationObserver(applyTheme).observe(themeStyle, {
+            childList: true,
+            characterData: true,
+            subtree: true,
+          });
+        }
+
+        let entries = [];
+
+        function renderWatched() {
+          const watched = entries.filter((e) => e.autoRefresh);
+          $('watched').hidden = watched.length === 0;
+          const list = $('watched-list');
+          list.textContent = '';
+
+          for (const entry of watched) {
+            const li = document.createElement('li');
+
+            const name = document.createElement('span');
+            name.className = 'name';
+            name.textContent = entry.title || entry.playlistId;
+            name.title = entry.title || entry.playlistId;
+            li.appendChild(name);
+
+            const when = document.createElement('span');
+            when.className = 'when' + (entry.lastError ? ' failed' : '');
+            when.textContent = entry.lastError ? 'last check failed' : ago(entry.lastChecked);
+            when.title = entry.lastError || '';
+            li.appendChild(when);
+
+            const remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'ghost mini';
+            remove.textContent = 'Stop';
+            remove.title = 'Stop checking this playlist';
+            remove.addEventListener('click', () => stopWatching(entry.playlistId));
+            li.appendChild(remove);
+
+            list.appendChild(li);
+          }
+        }
+
+        async function loadState() {
+          // plugin.js registers its message handler during startup, which can land
+          // just after this panel renders. Retry before deciding there is nothing.
+          for (let attempt = 0; attempt < 10; attempt++) {
+            try {
+              const state = await send({ type: 'state' }, 10000);
+              entries = (state && state.entries) || [];
+              renderWatched();
+              return;
+            } catch (e) {
+              if (attempt === 9) {
+                entries = [];
+                renderWatched();
+                return;
+              }
+              await new Promise((r) => setTimeout(r, 500));
+            }
+          }
+        }
+
+        async function stopWatching(playlistId) {
+          try {
+            await send({ type: 'forget', playlistId: playlistId }, 10000);
+            await loadState();
+            setStatus('status-watched', 'Stopped checking that playlist.', 'done');
+          } catch (e) {
+            setStatus('status-watched', (e && e.message) || String(e), 'error');
+          }
+        }
+
+        async function checkNow() {
+          const btn = $('check-now');
+          btn.disabled = true;
+          setStatus('status-watched', 'Checking…');
+          try {
+            const res = await send({ type: 'checkNow' }, 300000);
+            const added = (res && res.added) || 0;
+            setStatus(
+              'status-watched',
+              added ? 'Added ' + count(added, 'new video', 'new videos') + '.' : 'No new videos.',
+              'done',
+            );
+            await loadState();
+          } catch (e) {
+            setStatus('status-watched', (e && e.message) || String(e), 'error');
+          } finally {
+            btn.disabled = false;
+          }
+        }
+
+        async function loadProjects() {
+          const select = $('project');
+          const current = select.value;
+          while (select.options.length > 1) select.remove(1);
+          try {
+            const projects = await host().getAllProjects();
+            for (const p of projects) {
+              if (p.isArchived) continue;
+              const opt = document.createElement('option');
+              opt.value = p.id;
+              opt.textContent = p.title;
+              select.appendChild(opt);
+            }
+            if (current && Array.from(select.options).some((o) => o.value === current)) {
+              select.value = current;
+            }
+          } catch (e) {
+            // The list is a convenience; Inbox still works without it.
+          }
+        }
+
+        // ---------- preview ----------
+
+        let preview = null;
+        let selected = new Set();
+        let fetchTimer = null;
+
+        function selectable(video) {
+          return !video.present && !video.unavailable;
+        }
+
+        function updateCount() {
+          const n = selected.size;
+          const canUpdate = !!(preview && preview.taskId && $('update').checked);
+          $('pv-count').textContent = n
+            ? n + ' of ' + preview.videos.length + ' selected'
+            : 'none selected';
+          $('apply').disabled = n === 0 && !canUpdate;
+        }
+
+        function renderList() {
+          const list = $('pv-list');
+          list.textContent = '';
+
+          for (const video of preview.videos) {
+            const li = document.createElement('li');
+            const ok = selectable(video);
+            if (!ok) li.className = 'off';
+
+            const box = document.createElement('input');
+            box.type = 'checkbox';
+            box.checked = selected.has(video.videoId);
+            box.disabled = !ok;
+            box.setAttribute('aria-label', video.title);
+            box.addEventListener('change', () => {
+              if (box.checked) selected.add(video.videoId);
+              else selected.delete(video.videoId);
+              updateCount();
+            });
+            li.appendChild(box);
+
+            const text = document.createElement('div');
+            text.className = 'text';
+
+            const title = document.createElement('span');
+            title.className = 'title';
+            title.textContent = video.title;
+            text.appendChild(title);
+
+            const sub = document.createElement('span');
+            sub.className = 'sub';
+            if (video.durationSec) {
+              const d = document.createElement('span');
+              d.textContent = formatDuration(video.durationSec);
+              sub.appendChild(d);
+            }
+            if (video.unavailable) {
+              const u = document.createElement('span');
+              u.textContent = 'unavailable';
+              sub.appendChild(u);
+            }
+            if (sub.childNodes.length) text.appendChild(sub);
+
+            li.appendChild(text);
+
+            if (video.present) {
+              const badge = document.createElement('span');
+              badge.className = 'badge';
+              badge.textContent = 'in task';
+              li.appendChild(badge);
+            }
+
+            list.appendChild(li);
+          }
+
+          updateCount();
+        }
+
+        function prefill(previewData) {
+          const settings = previewData.settings;
+          $('links').checked = settings ? settings.withLinks : true;
+          $('estimates').checked = settings ? settings.withEstimates : false;
+          $('auto-refresh').checked = settings ? settings.autoRefresh : false;
+        }
+
+        function describe(previewData) {
+          const usable = previewData.videos.filter((v) => !v.unavailable);
+          const parts = [count(usable.length, 'video', 'videos')];
+
+          const total = usable.reduce((sum, v) => sum + (v.durationSec || 0), 0);
+          if (total) parts.push(formatSpan(total) + ' in total');
+
+          const unavailable = previewData.videos.length - usable.length;
+          if (unavailable) parts.push(unavailable + ' unavailable');
+
+          if (previewData.truncated) parts.push('stopped at the 5,000 video cap');
+
+          if (previewData.taskTitle) parts.push('already a task: ' + previewData.taskTitle);
+
+          return parts.join(', ');
+        }
+
+        /* The update toggle changes what the import will do to an existing task. */
+        function syncExistingNote() {
+          const exists = !!(preview && preview.taskId);
+          const update = $('update').checked;
+
+          $('apply').textContent = exists && update ? 'Update task' : 'Add videos';
+          $('new-project').disabled = exists && update;
+
+          const warn = $('pv-warn');
+          if (exists && !update) {
+            warn.textContent =
+              'A task for this playlist already exists. With updating turned off, this makes a second task.';
+            warn.hidden = false;
+          } else {
+            warn.textContent = '';
+            warn.hidden = true;
+          }
+
+          updateCount();
+        }
+
+        async function fetchPreview(event) {
+          if (event) event.preventDefault();
+          const id = parsePlaylistId($('url').value);
+          if (!id) {
+            setStatus('status-one', 'That does not look like a playlist link.', 'error');
+            return;
+          }
+
+          if (typeof host().executeNodeScript !== 'function') {
+            setStatus(
+              'status-one',
+              'This only works in the desktop app, with node scripts allowed for this plugin.',
+              'error',
+            );
+            return;
+          }
+
+          const btn = $('fetch');
+          btn.disabled = true;
+          setStatus('status-one', 'Reading the playlist…');
+          window.clearTimeout(fetchTimer);
+
+          try {
+            const data = await send({ type: 'preview', playlistId: id }, 180000);
+            if (!data || !Array.isArray(data.videos) || !data.videos.length) {
+              throw new Error('That playlist has no videos in it.');
+            }
+
+            preview = data;
+            selected = new Set(data.videos.filter(selectable).map((v) => v.videoId));
+
+            $('pv-title').textContent = data.title || 'Playlist';
+            $('pv-meta').textContent = describe(data);
+            prefill(data);
+            renderList();
+            syncExistingNote();
+
+            $('step-one').hidden = true;
+            $('step-two').hidden = false;
+            setStatus('status-one', '');
+            setStatus('status-two', '');
+            $('pv-title').focus();
+          } catch (e) {
+            setStatus('status-one', (e && e.message) || String(e), 'error');
+          } finally {
+            btn.disabled = false;
+          }
+        }
+
+        async function applyImport() {
+          if (!preview) return;
+
+          const chosen = preview.videos
+            .filter((v) => selected.has(v.videoId))
+            .map((v) => ({
+              videoId: v.videoId,
+              title: v.title,
+              durationSec: v.durationSec || null,
+            }));
+
+          const taskId = $('update').checked ? preview.taskId || null : null;
+
+          const btn = $('apply');
+          btn.disabled = true;
+          setStatus('status-two', 'Writing tasks…');
+
+          try {
+            const result = await send(
+              {
+                type: 'apply',
+                playlistId: preview.playlistId,
+                playlistTitle: preview.title,
+                videos: chosen,
+                title: $('name').value.trim(),
+                projectId: $('project').value || null,
+                taskId: taskId,
+                newProject: $('new-project').checked && !taskId,
+                withLinks: $('links').checked,
+                withEstimates: $('estimates').checked,
+                autoRefresh: $('auto-refresh').checked,
+                knownIds: preview.videos
+                  .filter((v) => !v.unavailable)
+                  .map((v) => v.videoId),
+              },
+              180000,
+            );
+
+            const parts = [];
+            if (result.added) parts.push('Added ' + count(result.added, 'video', 'videos') + '.');
+            else parts.push('Nothing new to add.');
+            if (result.already) parts.push(count(result.already, 'was', 'were') + ' already there.');
+            if (result.added && $('estimates').checked) parts.push('Time estimates set.');
+            if ($('links').checked && result.linkState === 'no-links') {
+              parts.push('This app version did not keep the links, so they are in the task notes.');
+            }
+
+            try {
+              host().showSnack({
+                msg: 'Saved ' + (result.title || preview.title),
+                type: 'SUCCESS',
+                ico: 'playlist_play',
+              });
+            } catch (e) {
+              // snack is cosmetic
+            }
+
+            $('step-two').hidden = true;
+            $('step-one').hidden = false;
+            setStatus('status-one', parts.join(' '), 'done');
+            await loadState();
+            await loadProjects();
+          } catch (e) {
+            setStatus('status-two', (e && e.message) || String(e), 'error');
+            btn.disabled = false;
+          }
+        }
+
+        function backToForm() {
+          $('step-two').hidden = true;
+          $('step-one').hidden = false;
+          $('pv-list').textContent = '';
+          preview = null;
+          selected = new Set();
+          setStatus('status-two', '');
+        }
+
+        // ---------- wiring ----------
+
+        $('fetch-form').addEventListener('submit', fetchPreview);
+        $('apply').addEventListener('click', applyImport);
+        $('back').addEventListener('click', backToForm);
+        $('check-now').addEventListener('click', checkNow);
+
+        $('select-all').addEventListener('click', () => {
+          if (!preview) return;
+          selected = new Set(preview.videos.filter(selectable).map((v) => v.videoId));
+          renderList();
+        });
+
+        $('select-none').addEventListener('click', () => {
+          selected = new Set();
+          renderList();
+        });
+
+        $('new-project').addEventListener('change', () => {
+          $('project').disabled = $('new-project').checked;
+        });
+
+        $('update').addEventListener('change', syncExistingNote);
+
+        document.addEventListener('paste', (e) => {
+          const text = e.clipboardData && e.clipboardData.getData('text');
+          if (text && /list=|youtu\.be|youtube\.com/.test(text) && !$('url').value) {
+            $('url').value = text.trim();
+          }
+        });
+
+        (async () => {
+          for (let i = 0; i < 50 && !window.PluginAPI; i++) {
+            await new Promise((r) => setTimeout(r, 100));
+          }
+          applyTheme();
+          loadProjects();
+          loadState();
+        })();
+      })();
+    </script>
+  </body>
+</html>
