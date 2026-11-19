@@ -1180,6 +1180,18 @@
 
           if (previewData.truncated) parts.push('stopped at the 5,000 video cap');
 
+          if (
+            Number.isFinite(previewData.declared) &&
+            previewData.declared > previewData.videos.length
+          ) {
+            parts.push(
+              'YouTube reports ' +
+                count(previewData.declared, 'video', 'videos') +
+                ', read ' +
+                previewData.videos.length,
+            );
+          }
+
           if (previewData.fromCache && previewData.cachedAt) {
             parts.push(cacheAge(previewData.cachedAt));
           }
