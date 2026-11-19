@@ -148,6 +148,24 @@ check('second preview uses the cache', p2.fromCache === true);
 const forced = await send({ type: 'preview', playlistId: PLAYLIST.playlistId, force: true });
 check('forced preview reads YouTube again', forced.fromCache === false);
 
+const realExecute = api.executeNodeScript;
+let failedReads = 0;
+api.executeNodeScript = async () => {
+  failedReads++;
+  return { success: false, error: { message: 'Playlist not found (is it public?)' } };
+};
+let permanentError = null;
+try {
+  await send({ type: 'preview', playlistId: PLAYLIST.playlistId, force: true });
+} catch (e) {
+  permanentError = e;
+}
+api.executeNodeScript = realExecute;
+check(
+  'a 404 fails on the first attempt',
+  failedReads === 1 && String(permanentError && permanentError.message).startsWith('PERMANENT: '),
+);
+
 await send({
   type: 'apply',
   playlistId: PLAYLIST.playlistId,
