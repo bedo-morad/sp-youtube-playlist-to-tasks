@@ -1,0 +1,28 @@
+{
+  "id": "youtube-playlist-import",
+  "name": "YouTube playlists",
+  "version": "1.3.0",
+  "manifestVersion": 1,
+  "minSupVersion": "19.3.1",
+  "description": "Imports a YouTube playlist as a task with one subtask per video. Shows a preview before writing, and can attach links, set time estimates and re-check for new videos.",
+  "author": "you",
+  "iFrame": true,
+  "icon": "icon.svg",
+  "hooks": [],
+  "permissions": [
+    "nodeExecution",
+    "addTask",
+    "updateTask",
+    "getTasks",
+    "getAllProjects",
+    "addProject",
+    "showSnack",
+    "persistDataSynced",
+    "loadSyncedData",
+    "onMessage"
+  ],
+  "nodeScriptConfig": {
+    "timeout": 180000
+  },
+  "dataSharing": []
+}

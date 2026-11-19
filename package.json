@@ -1,0 +1,16 @@
+{
+  "name": "youtube-playlist-import",
+  "version": "1.3.0",
+  "private": true,
+  "description": "Super Productivity plugin that imports a YouTube playlist as a task with one subtask per video.",
+  "type": "module",
+  "scripts": {
+    "check": "node scripts/check.mjs",
+    "test": "node scripts/check.mjs && node scripts/smoke.mjs",
+    "pack": "node scripts/pack.mjs",
+    "build": "npm test && node scripts/pack.mjs"
+  },
+  "engines": {
+    "node": ">=20.11"
+  }
+}
