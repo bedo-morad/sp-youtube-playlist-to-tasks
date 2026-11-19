@@ -341,6 +341,57 @@
         font-variant-numeric: tabular-nums;
       }
 
+      .all-check {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        font-size: var(--font-size-sm, 13px);
+        color: var(--fg-muted);
+        cursor: pointer;
+      }
+
+      .all-check input {
+        appearance: none;
+        display: grid;
+        place-content: center;
+        width: 20px;
+        height: 20px;
+        margin: 0;
+        border: 2px solid var(--fg-muted);
+        border-radius: 50%;
+        cursor: pointer;
+      }
+
+      .all-check input::before {
+        content: '';
+        width: 10px;
+        height: 6px;
+        margin-top: -3px;
+        border-left: 2px solid var(--accent-fg);
+        border-bottom: 2px solid var(--accent-fg);
+        transform: rotate(-45deg) scale(0);
+        transition: transform var(--ease);
+      }
+
+      .all-check input:checked,
+      .all-check input:indeterminate {
+        background: var(--accent);
+        border-color: var(--accent);
+      }
+
+      .all-check input:checked::before {
+        transform: rotate(-45deg) scale(1);
+      }
+
+      .all-check input:indeterminate::before {
+        width: 10px;
+        height: 2px;
+        margin-top: 0;
+        border: 0;
+        background: var(--accent-fg);
+        transform: none;
+      }
+
       .list {
         margin: 0;
         padding: 0;
@@ -633,8 +684,10 @@
         </div>
 
         <div class="toolbar">
-          <button id="select-all" type="button" class="ghost mini">Select all</button>
-          <button id="select-none" type="button" class="ghost mini">Select none</button>
+          <label class="all-check" title="Select all visible videos">
+            <input id="select-all" type="checkbox" aria-label="Select all visible videos" />
+            <span>All</span>
+          </label>
           <span id="pv-count" class="count" aria-live="polite"></span>
         </div>
 
@@ -905,6 +958,10 @@
           });
         }
 
+        function visibleVideos() {
+          return orderedVideos();
+        }
+
         function clampHours(value) {
           const n = Number(value);
           if (!Number.isFinite(n) || n <= 0) return 24;
@@ -925,13 +982,21 @@
             ? n + ' of ' + preview.videos.length + ' selected'
             : 'none selected';
           $('apply').disabled = n === 0 && !canUpdate;
+
+          const visible = visibleVideos().filter(selectable);
+          const allOn = visible.length > 0 && visible.every((v) => selected.has(v.videoId));
+          const someOn = visible.some((v) => selected.has(v.videoId));
+          const master = $('select-all');
+          master.checked = allOn;
+          master.indeterminate = !allOn && someOn;
+          master.disabled = visible.length === 0;
         }
 
         function renderList() {
           const list = $('pv-list');
           list.textContent = '';
 
-          for (const video of orderedVideos()) {
+          for (const video of visibleVideos()) {
             const li = document.createElement('li');
             const ok = selectable(video);
             if (!ok) li.className = 'off';
@@ -1177,14 +1242,11 @@
         $('back').addEventListener('click', backToForm);
         $('check-now').addEventListener('click', checkNow);
 
-        $('select-all').addEventListener('click', () => {
+        $('select-all').addEventListener('change', () => {
           if (!preview) return;
-          selected = new Set(preview.videos.filter(selectable).map((v) => v.videoId));
-          renderList();
-        });
-
-        $('select-none').addEventListener('click', () => {
-          selected = new Set();
+          const ids = visibleVideos().filter(selectable).map((v) => v.videoId);
+          if ($('select-all').checked) ids.forEach((id) => selected.add(id));
+          else ids.forEach((id) => selected.delete(id));
           renderList();
         });
 
