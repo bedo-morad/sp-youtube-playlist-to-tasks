@@ -12,6 +12,18 @@ const TICK_MS = 10 * 60 * 1000;
 const START_DELAY_MS = 15 * 1000;
 const MAX_VIDEOS = 5000;
 const PLACEHOLDER = /^(private|deleted) video$/i;
+const PERMANENT_PREFIX = 'PERMANENT: ';
+
+function markedError(err) {
+  const msg = String((err && err.message) || err || 'Could not read the playlist.');
+  if (msg.startsWith(PERMANENT_PREFIX)) return err;
+  const status = /HTTP\s+(\d{3})/i.exec(msg);
+  const code = status ? Number(status[1]) : null;
+  const permanent =
+    /not found/i.test(msg) ||
+    (code !== null && code >= 400 && code < 500 && code !== 429);
+  return new Error(permanent ? PERMANENT_PREFIX + msg : msg);
+}
 
 const playlistUrl = (id) => 'https://www.youtube.com/playlist?list=' + id;
 const videoUrl = (id) => 'https://www.youtube.com/watch?v=' + id;
@@ -394,7 +406,7 @@ async function readPlaylist(id) {
   });
   if (!res || !res.success) {
     const err = res && res.error;
-    throw new Error((err && (err.message || err)) || 'Could not read the playlist.');
+    throw markedError(err);
   }
   return res.result;
 }
@@ -430,6 +442,7 @@ async function readPlaylistWithRetry(id) {
     try {
       return await readPlaylist(id);
     } catch (e) {
+      if (String((e && e.message) || e).startsWith(PERMANENT_PREFIX)) throw e;
       last = e;
       if (attempt < 3) await new Promise((r) => setTimeout(r, attempt === 1 ? 1000 : 2000));
     }

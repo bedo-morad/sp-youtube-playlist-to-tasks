@@ -873,6 +873,9 @@
           el.className = 'status' + (kind ? ' ' + kind : '');
         }
 
+        const errorText = (e) =>
+          String((e && e.message) || e || '').replace(/^PERMANENT: /, '');
+
         /* Native form controls pick their palette from the document's
            color-scheme, not from CSS variables, so it has to be set from the
            theme flag the host injects. */
@@ -957,7 +960,7 @@
             await loadState();
             setStatus('status-watched', 'Stopped checking that playlist.', 'done');
           } catch (e) {
-            setStatus('status-watched', (e && e.message) || String(e), 'error');
+            setStatus('status-watched', errorText(e), 'error');
           }
         }
 
@@ -975,7 +978,7 @@
             );
             await loadState();
           } catch (e) {
-            setStatus('status-watched', (e && e.message) || String(e), 'error');
+            setStatus('status-watched', errorText(e), 'error');
           } finally {
             btn.disabled = false;
           }
@@ -1262,7 +1265,12 @@
                 );
                 break;
               } catch (e) {
-                if (attempt === attempts) throw e;
+                if (
+                  attempt === attempts ||
+                  String((e && e.message) || e).startsWith('PERMANENT: ')
+                ) {
+                  throw e;
+                }
                 await new Promise((r) => setTimeout(r, attempt === 1 ? 1000 : 2000));
               }
             }
@@ -1286,7 +1294,7 @@
             setStatus('status-two', '');
             $('pv-title').focus();
           } catch (e) {
-            setStatus('status-one', (e && e.message) || String(e), 'error');
+            setStatus('status-one', errorText(e), 'error');
           } finally {
             btn.disabled = false;
           }
@@ -1359,7 +1367,7 @@
             await loadState();
             await loadProjects();
           } catch (e) {
-            setStatus('status-two', (e && e.message) || String(e), 'error');
+            setStatus('status-two', errorText(e), 'error');
             btn.disabled = false;
           }
         }
