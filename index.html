@@ -1361,6 +1361,60 @@
           setStatus('status-two', '');
         }
 
+        function handlePreviewKeys(e) {
+          if ($('step-two').hidden || !preview) return;
+          const target = e.target;
+          const typing =
+            target &&
+            (target.matches('input[type="text"], input[type="number"], textarea, select') ||
+              target.isContentEditable);
+          if (typing) return;
+
+          const boxes = Array.from(
+            $('pv-list').querySelectorAll('input[type="checkbox"]'),
+          ).filter((box) => !box.disabled);
+
+          if (e.key === 'Escape') {
+            e.preventDefault();
+            backToForm();
+            return;
+          }
+
+          if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            if (!boxes.length) return;
+            e.preventDefault();
+            const at = boxes.indexOf(document.activeElement);
+            const next =
+              e.key === 'ArrowDown'
+                ? at === -1
+                  ? 0
+                  : Math.min(at + 1, boxes.length - 1)
+                : at === -1
+                  ? boxes.length - 1
+                  : Math.max(at - 1, 0);
+            boxes[next].focus();
+            return;
+          }
+
+          if (e.key === ' ' || e.key === 'Spacebar') {
+            if (target && target.matches('input[type="checkbox"], button')) return;
+            if (!boxes.length) return;
+            e.preventDefault();
+            const at = boxes.indexOf(document.activeElement);
+            const box = at === -1 ? boxes[0] : boxes[at];
+            box.checked = !box.checked;
+            box.dispatchEvent(new Event('change', { bubbles: true }));
+            box.focus();
+            return;
+          }
+
+          if (e.key === 'Enter') {
+            if (target && target.matches('button, a, input, select, textarea')) return;
+            e.preventDefault();
+            applyImport();
+          }
+        }
+
         // ---------- wiring ----------
 
         $('fetch-form').addEventListener('submit', fetchPreview);
@@ -1404,6 +1458,8 @@
             $('url').value = text.trim();
           }
         });
+
+        document.addEventListener('keydown', handlePreviewKeys);
 
         (async () => {
           for (let i = 0; i < 50 && !window.PluginAPI; i++) {
