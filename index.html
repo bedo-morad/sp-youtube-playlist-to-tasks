@@ -855,8 +855,16 @@
         async function openVideo(id) {
           const url = videoUrl(id);
           try {
-            const win = window.open(url, '_blank', 'noopener,noreferrer');
-            if (!win || win.closed) throw new Error('blocked');
+            const win = window.open(url, '_blank');
+            if (win) {
+              try {
+                win.opener = null;
+              } catch (e) {
+                // Cross-origin windows may refuse this; the tab is still open.
+              }
+              return;
+            }
+            throw new Error('blocked');
           } catch (e) {
             try {
               await navigator.clipboard.writeText(url);
@@ -1140,6 +1148,7 @@
             open.title = 'Open video';
             open.setAttribute('aria-label', 'Open video');
             const icon = document.createElement('span');
+            // The host injects its UI kit, including the Material Symbols font.
             icon.className = 'material-icons';
             icon.setAttribute('aria-hidden', 'true');
             icon.textContent = 'open_in_new';
@@ -1384,6 +1393,13 @@
         function handlePreviewKeys(e) {
           if ($('step-two').hidden || !preview) return;
           const target = e.target;
+
+          if (e.key === 'Escape') {
+            e.preventDefault();
+            backToForm();
+            return;
+          }
+
           const typing =
             target &&
             (target.matches('input[type="text"], input[type="number"], textarea, select') ||
@@ -1393,12 +1409,6 @@
           const boxes = Array.from(
             $('pv-list').querySelectorAll('input[type="checkbox"]'),
           ).filter((box) => !box.disabled);
-
-          if (e.key === 'Escape') {
-            e.preventDefault();
-            backToForm();
-            return;
-          }
 
           if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
             if (!boxes.length) return;

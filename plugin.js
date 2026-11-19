@@ -481,13 +481,15 @@ async function findExistingTask(playlistId) {
 }
 
 /** Video ids already under this task, plus titles as a fallback for tasks imported without links. */
-function alreadyThere(tasks, parentId) {
+function alreadyThere(tasks, parentId, numbered) {
   const ids = new Set();
   const titles = new Set();
   for (const t of tasks) {
     if (t.parentId !== parentId) continue;
-    // A numbered title still refers to the same video on a later import.
-    titles.add(String(t.title || '').replace(/^\d+\.\s+/, '').trim().toLowerCase());
+    const title = String(t.title || '').trim().toLowerCase();
+    titles.add(title);
+    // Numbered titles still refer to the same video on a later import.
+    if (numbered) titles.add(title.replace(/^\d+\.\s+/, ''));
     for (const a of t.attachments || []) {
       const id = videoIdFromPath(a.path);
       if (id) ids.add(id);
@@ -580,7 +582,7 @@ async function writeIntoTask(opts) {
   if (withLinks) linkState = await ensureLink(taskId, playlistTitle, playlistUrl(playlistId));
 
   const tasks = await api.getTasks();
-  const seen = alreadyThere(tasks, taskId);
+  const seen = alreadyThere(tasks, taskId, opts.numbered === true);
   const todo = videos.filter((v) => !isPresent(seen, v));
   await addVideos(taskId, todo, withLinks && linkState !== 'no-links', withEstimates);
 
@@ -618,7 +620,11 @@ async function writeIntoTask(opts) {
 async function preview(id, force) {
   const { data, fromCache } = await readScrape(id, force === true);
   const found = await findExistingTask(id);
-  const seen = found.task ? alreadyThere(found.tasks, found.task.id) : { ids: new Set(), titles: new Set() };
+  const entry = (await loadRegistry()).find((e) => e.playlistId === id) || null;
+  const numbered = entry && entry.numberTitles === true;
+  const seen = found.task
+    ? alreadyThere(found.tasks, found.task.id, numbered)
+    : { ids: new Set(), titles: new Set() };
 
   const videos = data.videos.map((v) => ({
     videoId: v.videoId,
@@ -629,8 +635,6 @@ async function preview(id, force) {
     unavailable: PLACEHOLDER.test(v.title),
     present: isPresent(seen, v),
   }));
-
-  const entry = (await loadRegistry()).find((e) => e.playlistId === id) || null;
 
   return {
     playlistId: id,
@@ -659,6 +663,9 @@ async function preview(id, force) {
 async function apply(msg) {
   const playlistId = String(msg.playlistId || '');
   if (!/^[A-Za-z0-9_-]{10,}$/.test(playlistId)) throw new Error('Bad playlist id.');
+
+  const priorEntry = (await loadRegistry()).find((e) => e.playlistId === playlistId) || null;
+  const numbered = priorEntry && priorEntry.numberTitles === true;
 
   const videos = (Array.isArray(msg.videos) ? msg.videos : [])
     .filter((v) => v && typeof v.videoId === 'string' && typeof v.title === 'string')
@@ -703,6 +710,7 @@ async function apply(msg) {
     withEstimates: msg.withEstimates === true,
     withDescription: msg.withDescription === true,
     description: typeof msg.description === 'string' ? msg.description : '',
+    numbered: numbered,
   });
 
   if (newProjectId && result.linkState !== 'no-links') {
@@ -749,7 +757,7 @@ async function refreshEntry(entry) {
   const parent = tasks.find((t) => t.id === entry.taskId);
   if (!parent) return 0;
 
-  const seen = alreadyThere(tasks, entry.taskId);
+  const seen = alreadyThere(tasks, entry.taskId, entry.numberTitles === true);
   const known = new Set(entry.knownIds || []);
   const missing = data.videos.filter(
     (v) => !PLACEHOLDER.test(v.title) && !known.has(v.videoId) && !isPresent(seen, v),
