@@ -38,7 +38,8 @@ the playlist holds:
 - the last scrape is kept for five minutes, and Refresh reads from YouTube again;
 - a small open icon beside each title opens the video. If the app blocks it, the URL is copied
   to the clipboard instead;
-- a failed read is retried twice, with the attempt shown in the status line.
+- a failed read is retried twice, with the attempt shown in the status line;
+- arrow keys move between rows, Space toggles one, Enter imports and Escape goes back.
 
 ## Options
 
