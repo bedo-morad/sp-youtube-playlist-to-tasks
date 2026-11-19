@@ -562,6 +562,14 @@
                 </span>
               </label>
 
+              <label class="check">
+                <input id="number-titles" type="checkbox" />
+                <span>
+                  Number the subtask titles
+                  <span class="hint">Adds 1., 2., 3. before the titles this import creates.</span>
+                </span>
+              </label>
+
               <div class="field">
                 <label for="order">Subtask order</label>
                 <select id="order">
@@ -987,6 +995,7 @@
           $('links').checked = settings ? settings.withLinks : true;
           $('estimates').checked = settings ? settings.withEstimates : false;
           $('description').checked = settings ? settings.withDescription : false;
+          $('number-titles').checked = settings ? settings.numberTitles === true : false;
           $('auto-refresh').checked = settings ? settings.autoRefresh : false;
           const hours = settings && Number(settings.refreshHours) > 0 ? Number(settings.refreshHours) : 24;
           $('refresh-hours').value = String(hours);
@@ -1112,6 +1121,7 @@
                 withEstimates: $('estimates').checked,
                 withDescription: $('description').checked,
                 description: preview.description || '',
+                numberTitles: $('number-titles').checked,
                 autoRefresh: $('auto-refresh').checked,
                 refreshHours: clampHours($('refresh-hours').value),
                 knownIds: preview.videos

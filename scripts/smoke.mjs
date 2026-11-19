@@ -116,6 +116,7 @@ const r1 = await send({
   withLinks: true,
   withEstimates: true,
   withDescription: true,
+  numberTitles: true,
   autoRefresh: true,
   refreshHours: 12,
   knownIds: p1.videos.map((v) => v.videoId),
@@ -124,6 +125,7 @@ check('apply adds the selected videos', r1.added === 2, JSON.stringify(r1));
 
 const parent = tasks.find((t) => t.id === r1.taskId);
 const kids = tasks.filter((t) => t.parentId === r1.taskId);
+check('subtask titles are numbered from one', kids.map((k) => k.title).join('|') === '1. First video|2. Second video');
 check('task keeps the typed name', parent.title === 'My list');
 check('playlist link on the task', parent.attachments.length === 1);
 check('subtasks have links', kids.every((k) => k.attachments.length === 1));

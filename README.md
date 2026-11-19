@@ -50,6 +50,8 @@ under Options in the form.
 - Subtask order matches YouTube by default. Oldest first sorts by the age YouTube prints on
   each row. That age is relative ("6 years ago"), so videos of the same age keep their playlist
   order.
+- Number the subtask titles adds `1. `, `2. ` and so on to the titles this import creates. The
+  order you picked decides the numbers, and existing subtasks keep their titles.
 - Create a project named after the playlist puts the task in a new project instead of the one
   you picked. It helps with course playlists, and is unavailable when you are updating an
   existing task since a task cannot be moved from the panel.
