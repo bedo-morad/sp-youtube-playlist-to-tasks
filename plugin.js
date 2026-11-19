@@ -423,6 +423,20 @@ async function readScrape(id, force) {
   return { data: saved, fromCache: false };
 }
 
+/** Background checks retry on their own, without a panel to show progress. */
+async function readPlaylistWithRetry(id) {
+  let last = null;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      return await readPlaylist(id);
+    } catch (e) {
+      last = e;
+      if (attempt < 3) await new Promise((r) => setTimeout(r, attempt === 1 ? 1000 : 2000));
+    }
+  }
+  throw last;
+}
+
 // ---------- matching existing work ----------
 
 const videoIdFromPath = (path) => {
@@ -717,7 +731,7 @@ async function apply(msg) {
 let refreshing = false;
 
 async function refreshEntry(entry) {
-  const data = await readPlaylist(entry.playlistId);
+  const data = await readPlaylistWithRetry(entry.playlistId);
   const tasks = await api.getTasks();
   const parent = tasks.find((t) => t.id === entry.taskId);
   if (!parent) return 0;
