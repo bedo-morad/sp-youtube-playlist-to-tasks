@@ -1,5 +1,7 @@
 # YouTube Playlist to Tasks for Super Productivity
 
+[![CI](https://github.com/bedo-morad/sp-youtube-playlist-to-tasks/actions/workflows/ci.yml/badge.svg)](https://github.com/bedo-morad/sp-youtube-playlist-to-tasks/actions/workflows/ci.yml)
+
 A Super Productivity plugin. Paste a playlist, look through its videos, then import the ones
 you want. Every video becomes a subtask with its own link, and the playlist link goes on the
 main task.
@@ -116,6 +118,20 @@ Node process instead of the fs/path/os sandbox. To follow YouTube layout changes
 
 To watch the panel while you work, open the plugin in the app, then DevTools (F12). The panel
 is an iframe, so pick it in the DevTools frame selector to see its console.
+
+## Releasing
+
+1. Set the `version` field in `package.json` and `manifest.json` to the same value, and commit
+   that change by itself.
+2. Push a tag named `v` followed by that version, for example `v1.3.1`. Add a dash for a
+   prerelease, such as `v1.4.0-beta.1`.
+3. The release workflow checks the tag against both version fields, runs the tests, builds the
+   zip on Node 22, and publishes the release with a versioned zip, its sha256 and the commit
+   notes since the previous tag.
+
+The `main` branch and `v*` tags are protected. `main` takes only pull requests with one review
+and a passing CI run, so use a branch for changes. Only the repository owner can create release
+tags.
 
 ## Privacy
 
