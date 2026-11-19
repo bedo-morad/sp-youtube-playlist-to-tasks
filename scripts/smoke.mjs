@@ -96,6 +96,7 @@ check('preview carries ages', p1.videos[0].publishedDays === 2200);
 check('preview carries the description', p1.description === PLAYLIST.description);
 check('unavailable video flagged', p1.videos.find((v) => v.videoId === 'vid3').unavailable);
 check('no task before the first import', p1.taskId === null);
+check('first preview reads YouTube', p1.fromCache === false);
 
 // ---------- first import ----------
 
@@ -143,6 +144,9 @@ check('registry knows the skipped video', (state.entries[0].knownIds || []).incl
 const p2 = await send({ type: 'preview', playlistId: PLAYLIST.playlistId });
 check('preview finds the existing task', p2.taskId === parent.id);
 check('preview marks the two imported videos', p2.videos.filter((v) => v.present).length === 2);
+check('second preview uses the cache', p2.fromCache === true);
+const forced = await send({ type: 'preview', playlistId: PLAYLIST.playlistId, force: true });
+check('forced preview reads YouTube again', forced.fromCache === false);
 
 await send({
   type: 'apply',

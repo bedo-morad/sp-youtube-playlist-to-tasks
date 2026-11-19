@@ -3,6 +3,8 @@
 // plugin message channel and renders what it gets back.
 
 const REGISTRY_KEY = 'playlists';
+const SCRAPES_KEY = 'scrapes';
+const CACHE_MS = 5 * 60 * 1000;
 const DEFAULT_REFRESH_HOURS = 24;
 const MIN_REFRESH_HOURS = 1;
 const MAX_REFRESH_HOURS = 168;
@@ -354,6 +356,20 @@ async function saveRegistry(list) {
   await api.persistDataSynced(JSON.stringify(list), REGISTRY_KEY);
 }
 
+async function loadScrapes() {
+  try {
+    const raw = await api.loadSyncedData(SCRAPES_KEY);
+    const obj = raw ? JSON.parse(raw) : {};
+    return obj && typeof obj === 'object' && !Array.isArray(obj) ? obj : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+async function saveScrapes(map) {
+  await api.persistDataSynced(JSON.stringify(map), SCRAPES_KEY);
+}
+
 function upsertEntry(list, entry) {
   const i = list.findIndex((e) => e.playlistId === entry.playlistId);
   if (i === -1) list.push(entry);
@@ -381,6 +397,30 @@ async function readPlaylist(id) {
     throw new Error((err && (err.message || err)) || 'Could not read the playlist.');
   }
   return res.result;
+}
+
+/** A scrape younger than five minutes is reused; force always goes to YouTube. */
+async function readScrape(id, force) {
+  const all = await loadScrapes();
+  const cached = all[id];
+  if (
+    !force &&
+    cached &&
+    Number.isFinite(cached.fetchedAt) &&
+    Date.now() - cached.fetchedAt < CACHE_MS
+  ) {
+    return { data: cached, fromCache: true };
+  }
+
+  const data = await readPlaylist(id);
+  const saved = Object.assign({ fetchedAt: Date.now() }, data);
+  all[id] = saved;
+  try {
+    await saveScrapes(all);
+  } catch (e) {
+    // A full or unavailable store must not block an import.
+  }
+  return { data: saved, fromCache: false };
 }
 
 // ---------- matching existing work ----------
@@ -548,8 +588,8 @@ async function writeIntoTask(opts) {
 
 // ---------- requests from the panel ----------
 
-async function preview(id) {
-  const data = await readPlaylist(id);
+async function preview(id, force) {
+  const { data, fromCache } = await readScrape(id, force === true);
   const found = await findExistingTask(id);
   const seen = found.task ? alreadyThere(found.tasks, found.task.id) : { ids: new Set(), titles: new Set() };
 
@@ -571,6 +611,8 @@ async function preview(id) {
     description: data.description || '',
     declared: data.declared,
     truncated: data.truncated,
+    cachedAt: data.fetchedAt || null,
+    fromCache: fromCache,
     taskId: found.task ? found.task.id : null,
     taskTitle: found.task ? found.task.title : null,
     settings: entry
@@ -750,7 +792,7 @@ const HANDLERS = {
     entries: await loadRegistry(),
     canRefresh: typeof api.executeNodeScript === 'function',
   }),
-  preview: (msg) => preview(String(msg.playlistId || '')),
+  preview: (msg) => preview(String(msg.playlistId || ''), msg.force === true),
   apply: (msg) => apply(msg),
   checkNow: async () => ({ added: await refreshAll(true) }),
   forget: (msg) => forget(String(msg.playlistId || '')),
