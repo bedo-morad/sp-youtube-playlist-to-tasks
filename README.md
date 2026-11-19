@@ -36,6 +36,8 @@ the playlist holds:
 - the All circle selects or clears every selectable row in the list;
 - the search box filters titles, and the All circle follows the rows you can see;
 - the last scrape is kept for five minutes, and Refresh reads from YouTube again;
+- a small open icon beside each title opens the video. If the app blocks it, the URL is copied
+  to the clipboard instead;
 - a failed read is retried twice, with the attempt shown in the status line.
 
 ## Options

@@ -449,6 +449,31 @@
         color: var(--fg-muted);
       }
 
+      .open-btn {
+        flex: 0 0 auto;
+        align-self: center;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: transparent;
+        color: var(--fg-muted);
+        cursor: pointer;
+      }
+
+      .open-btn:hover {
+        background: var(--hover);
+        color: var(--fg);
+      }
+
+      .open-btn .material-icons {
+        font-size: 18px;
+      }
+
       .badge {
         flex: 0 0 auto;
         align-self: center;
@@ -743,6 +768,7 @@
         const host = () => window.PluginAPI;
 
         const playlistUrl = (id) => 'https://www.youtube.com/playlist?list=' + id;
+        const videoUrl = (id) => 'https://www.youtube.com/watch?v=' + id;
         const count = (n, one, many) => n + ' ' + (n === 1 ? one : many);
 
         /* Messages to plugin.js. The host forwards PLUGIN_MESSAGE to the plugin's
@@ -825,6 +851,21 @@
           if (min < 60) return 'cached ' + min + 'm ago';
           return 'cached ' + Math.round(min / 60) + 'h ago';
         };
+
+        async function openVideo(id) {
+          const url = videoUrl(id);
+          try {
+            const win = window.open(url, '_blank', 'noopener,noreferrer');
+            if (!win || win.closed) throw new Error('blocked');
+          } catch (e) {
+            try {
+              await navigator.clipboard.writeText(url);
+              setStatus('status-two', 'Link copied. Paste it into your browser.', 'done');
+            } catch (err) {
+              setStatus('status-two', url, 'error');
+            }
+          }
+        }
 
         function setStatus(id, msg, kind) {
           const el = $(id);
@@ -1088,6 +1129,19 @@
             if (sub.childNodes.length) text.appendChild(sub);
 
             li.appendChild(text);
+
+            const open = document.createElement('button');
+            open.type = 'button';
+            open.className = 'open-btn';
+            open.title = 'Open video';
+            open.setAttribute('aria-label', 'Open video: ' + video.title);
+            const icon = document.createElement('span');
+            icon.className = 'material-icons';
+            icon.setAttribute('aria-hidden', 'true');
+            icon.textContent = 'open_in_new';
+            open.appendChild(icon);
+            open.addEventListener('click', () => openVideo(video.videoId));
+            li.appendChild(open);
 
             if (video.present) {
               const badge = document.createElement('span');
