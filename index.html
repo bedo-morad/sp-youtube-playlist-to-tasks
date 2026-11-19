@@ -246,6 +246,9 @@
 
       .check .hint {
         display: block;
+      }
+
+      .hint {
         color: var(--fg-muted);
         font-size: var(--font-size-xs, 12px);
       }
@@ -528,6 +531,15 @@
                   <span class="hint">Added once. Your own notes stay where they are.</span>
                 </span>
               </label>
+
+              <div class="field">
+                <label for="order">Subtask order</label>
+                <select id="order">
+                  <option value="playlist" selected>Playlist order</option>
+                  <option value="oldest">Oldest first</option>
+                </select>
+                <span class="hint">Oldest first uses the approximate age YouTube shows on the playlist page.</span>
+              </div>
 
               <label class="check">
                 <input id="new-project" type="checkbox" />
@@ -825,6 +837,19 @@
           return !video.present && !video.unavailable;
         }
 
+        /* Playlist order by default. Oldest first sorts by the approximate age
+           YouTube prints on the page; equal ages keep the playlist order because
+           Array.sort is stable. */
+        function orderedVideos() {
+          const list = preview ? preview.videos.slice() : [];
+          if ($('order').value !== 'oldest') return list;
+          return list.sort((a, b) => {
+            const ad = typeof a.publishedDays === 'number' ? a.publishedDays : -1;
+            const bd = typeof b.publishedDays === 'number' ? b.publishedDays : -1;
+            return bd - ad;
+          });
+        }
+
         function updateCount() {
           const n = selected.size;
           const canUpdate = !!(preview && preview.taskId && $('update').checked);
@@ -838,7 +863,7 @@
           const list = $('pv-list');
           list.textContent = '';
 
-          for (const video of preview.videos) {
+          for (const video of orderedVideos()) {
             const li = document.createElement('li');
             const ok = selectable(video);
             if (!ok) li.className = 'off';
@@ -869,6 +894,11 @@
               const d = document.createElement('span');
               d.textContent = formatDuration(video.durationSec);
               sub.appendChild(d);
+            }
+            if (video.publishedText) {
+              const p = document.createElement('span');
+              p.textContent = video.publishedText;
+              sub.appendChild(p);
             }
             if (video.unavailable) {
               const u = document.createElement('span');
@@ -990,7 +1020,7 @@
         async function applyImport() {
           if (!preview) return;
 
-          const chosen = preview.videos
+          const chosen = orderedVideos()
             .filter((v) => selected.has(v.videoId))
             .map((v) => ({
               videoId: v.videoId,
@@ -1089,6 +1119,12 @@
         });
 
         $('update').addEventListener('change', syncExistingNote);
+
+        $('order').addEventListener('change', () => {
+          if (!preview) return;
+          renderList();
+          $('pv-list').scrollTop = 0;
+        });
 
         document.addEventListener('paste', (e) => {
           const text = e.clipboardData && e.clipboardData.getData('text');

@@ -115,6 +115,45 @@ const NODE_SCRIPT = `
     return null;
   }
 
+  // "6 years ago" to an approximate age in days, for the oldest-first ordering.
+  // YouTube gives a relative age on this page, so videos in the same bucket keep
+  // their playlist order.
+  const AGE_PATTERN = /(\\d+)\\s*(second|minute|hour|day|week|month|year)s?\\s+ago/i;
+  const AGE_LABEL_PATTERN = /(\\d+\\s*(?:second|minute|hour|day|week|month|year)s?\\s+ago)/i;
+
+  function ageInDays(raw) {
+    const m = AGE_PATTERN.exec(String(raw || ''));
+    if (!m) return null;
+    const unit = { second: 1 / 86400, minute: 1 / 1440, hour: 1 / 24, day: 1, week: 7, month: 30, year: 365 }[
+      m[2].toLowerCase()
+    ];
+    return Math.round(Number(m[1]) * unit * 1000) / 1000;
+  }
+
+  function ageLabel(raw) {
+    const m = AGE_LABEL_PATTERN.exec(String(raw || ''));
+    return m ? m[1] : '';
+  }
+
+  function ageOf(lockup) {
+    const rows =
+      (lockup.metadata &&
+        lockup.metadata.lockupMetadataViewModel &&
+        lockup.metadata.lockupMetadataViewModel.metadata &&
+        lockup.metadata.lockupMetadataViewModel.metadata.contentMetadataViewModel &&
+        lockup.metadata.lockupMetadataViewModel.metadata.contentMetadataViewModel
+          .metadataRows) ||
+      [];
+    for (const row of rows) {
+      for (const part of row.metadataParts || []) {
+        const raw = text(part.text);
+        const days = ageInDays(raw);
+        if (days !== null) return { days: days, label: raw };
+      }
+    }
+    return { days: null, label: '' };
+  }
+
   function videosIn(data) {
     const out = [];
     const seen = new Set();
@@ -125,7 +164,14 @@ const NODE_SCRIPT = `
       const title = text(meta && meta.title);
       if (l.contentId && title && !seen.has(l.contentId)) {
         seen.add(l.contentId);
-        out.push({ videoId: l.contentId, title: title, durationSec: durationOf(l) });
+        const age = ageOf(l);
+        out.push({
+          videoId: l.contentId,
+          title: title,
+          durationSec: durationOf(l),
+          publishedDays: age.days,
+          publishedText: age.label,
+        });
       }
     }
 
@@ -142,7 +188,14 @@ const NODE_SCRIPT = `
           break;
         }
       }
-      out.push({ videoId: v.videoId, title: title, durationSec: durationSec });
+      const published = text(v.videoInfo);
+      out.push({
+        videoId: v.videoId,
+        title: title,
+        durationSec: durationSec,
+        publishedDays: ageInDays(published),
+        publishedText: ageLabel(published),
+      });
     }
 
     return out;
