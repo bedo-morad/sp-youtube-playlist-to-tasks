@@ -3,7 +3,10 @@
 // plugin message channel and renders what it gets back.
 
 const REGISTRY_KEY = 'playlists';
-const REFRESH_EVERY_MS = 6 * 60 * 60 * 1000;
+const DEFAULT_REFRESH_HOURS = 24;
+const MIN_REFRESH_HOURS = 1;
+const MAX_REFRESH_HOURS = 168;
+const TICK_MS = 10 * 60 * 1000;
 const START_DELAY_MS = 15 * 1000;
 const MAX_VIDEOS = 5000;
 const PLACEHOLDER = /^(private|deleted) video$/i;
@@ -358,6 +361,13 @@ function upsertEntry(list, entry) {
   return list;
 }
 
+/** Registry entries written before the interval was configurable fall back to 24h. */
+function refreshHoursOf(entry) {
+  const n = Number(entry && entry.refreshHours);
+  if (!Number.isFinite(n) || n <= 0) return DEFAULT_REFRESH_HOURS;
+  return Math.min(MAX_REFRESH_HOURS, Math.max(MIN_REFRESH_HOURS, n));
+}
+
 // ---------- reading ----------
 
 async function readPlaylist(id) {
@@ -568,6 +578,7 @@ async function preview(id) {
           withEstimates: entry.withEstimates === true,
           withDescription: entry.withDescription === true,
           autoRefresh: entry.autoRefresh === true,
+          refreshHours: refreshHoursOf(entry),
         }
       : null,
     videos: videos,
@@ -639,6 +650,7 @@ async function apply(msg) {
     withLinks: msg.withLinks !== false,
     withEstimates: msg.withEstimates === true,
     withDescription: msg.withDescription === true,
+    refreshHours: refreshHoursOf({ refreshHours: msg.refreshHours }),
     autoRefresh: msg.autoRefresh === true,
     // Videos the user left out stay out: the background check only adds videos
     // the playlist did not have when this import ran.
@@ -694,11 +706,15 @@ async function refreshAll(force) {
     const list = await loadRegistry();
     for (const entry of list) {
       if (!entry.autoRefresh) continue;
-      const due = force || Date.now() - (entry.lastChecked || 0) > REFRESH_EVERY_MS;
+      const hours = refreshHoursOf(entry);
+      const due = force || Date.now() - (entry.lastChecked || 0) >= hours * 60 * 60 * 1000;
       if (!due) continue;
+
+      // Count the attempt, not just the success, so a failing playlist waits a
+      // full interval before trying again.
+      entry.lastChecked = Date.now();
       try {
         added += await refreshEntry(entry);
-        entry.lastChecked = Date.now();
         entry.lastError = null;
       } catch (e) {
         entry.lastError = String((e && e.message) || e);
@@ -745,7 +761,7 @@ function start() {
 
   timer = setInterval(() => {
     refreshAll(false).catch(() => {});
-  }, REFRESH_EVERY_MS);
+  }, TICK_MS);
 }
 
 if (api.onReady) api.onReady(start);

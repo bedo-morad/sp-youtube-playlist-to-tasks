@@ -253,6 +253,36 @@
         font-size: var(--font-size-xs, 12px);
       }
 
+      .interval {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 6px 0 0 24px;
+        font-size: var(--font-size-sm, 13px);
+        color: var(--fg-muted);
+      }
+
+      .interval input {
+        width: 68px;
+        padding: 4px 8px;
+        font: inherit;
+        font-size: var(--font-size-sm, 13px);
+        color: var(--fg);
+        background-color: var(--input-bg);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+      }
+
+      .interval input:focus {
+        outline: none;
+        border-color: var(--border-focus);
+        box-shadow: 0 0 0 1px var(--border-focus);
+      }
+
+      .interval input:disabled {
+        opacity: 0.5;
+      }
+
       .status {
         margin: 0;
         min-height: 1.55em;
@@ -549,13 +579,28 @@
                 </span>
               </label>
 
-              <label class="check">
-                <input id="auto-refresh" type="checkbox" />
-                <span>
-                  Check for new videos every 6 hours
-                  <span class="hint">Runs while the app is open. New uploads are added as subtasks.</span>
-                </span>
-              </label>
+              <div>
+                <label class="check">
+                  <input id="auto-refresh" type="checkbox" />
+                  <span>
+                    Check for new videos
+                    <span class="hint">Runs while the app is open. New uploads are added as subtasks.</span>
+                  </span>
+                </label>
+                <div class="interval">
+                  <label for="refresh-hours">Every</label>
+                  <input
+                    id="refresh-hours"
+                    type="number"
+                    min="1"
+                    max="168"
+                    step="1"
+                    value="24"
+                    disabled
+                  />
+                  <span id="refresh-unit">hours</span>
+                </div>
+              </div>
 
               <label class="check">
                 <input id="update" type="checkbox" checked />
@@ -740,7 +785,9 @@
 
             const when = document.createElement('span');
             when.className = 'when' + (entry.lastError ? ' failed' : '');
-            when.textContent = entry.lastError ? 'last check failed' : ago(entry.lastChecked);
+            const hours = Number(entry.refreshHours) > 0 ? Number(entry.refreshHours) : 24;
+            const every = 'every ' + hours + 'h';
+            when.textContent = (entry.lastError ? 'last check failed' : ago(entry.lastChecked)) + ', ' + every;
             when.title = entry.lastError || '';
             li.appendChild(when);
 
@@ -850,6 +897,19 @@
           });
         }
 
+        function clampHours(value) {
+          const n = Number(value);
+          if (!Number.isFinite(n) || n <= 0) return 24;
+          return Math.min(168, Math.max(1, Math.round(n)));
+        }
+
+        function syncIntervalField() {
+          const on = $('auto-refresh').checked;
+          $('refresh-hours').disabled = !on;
+          const hours = clampHours($('refresh-hours').value);
+          $('refresh-unit').textContent = hours === 1 ? 'hour' : 'hours';
+        }
+
         function updateCount() {
           const n = selected.size;
           const canUpdate = !!(preview && preview.taskId && $('update').checked);
@@ -928,6 +988,9 @@
           $('estimates').checked = settings ? settings.withEstimates : false;
           $('description').checked = settings ? settings.withDescription : false;
           $('auto-refresh').checked = settings ? settings.autoRefresh : false;
+          const hours = settings && Number(settings.refreshHours) > 0 ? Number(settings.refreshHours) : 24;
+          $('refresh-hours').value = String(hours);
+          syncIntervalField();
         }
 
         function describe(previewData) {
@@ -1050,6 +1113,7 @@
                 withDescription: $('description').checked,
                 description: preview.description || '',
                 autoRefresh: $('auto-refresh').checked,
+                refreshHours: clampHours($('refresh-hours').value),
                 knownIds: preview.videos
                   .filter((v) => !v.unavailable)
                   .map((v) => v.videoId),
@@ -1125,6 +1189,9 @@
           renderList();
           $('pv-list').scrollTop = 0;
         });
+
+        $('auto-refresh').addEventListener('change', syncIntervalField);
+        $('refresh-hours').addEventListener('input', syncIntervalField);
 
         document.addEventListener('paste', (e) => {
           const text = e.clipboardData && e.clipboardData.getData('text');
