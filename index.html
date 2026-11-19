@@ -694,6 +694,7 @@
             <input id="select-all" type="checkbox" aria-label="Select all visible videos" />
             <span>All</span>
           </label>
+          <button id="refresh" type="button" class="ghost mini" title="Read again from YouTube">Refresh</button>
           <span id="pv-shown" class="shown" hidden></span>
           <span id="pv-count" class="count" aria-live="polite"></span>
         </div>
@@ -816,6 +817,13 @@
           const hours = Math.round(min / 60);
           if (hours < 24) return 'checked ' + hours + 'h ago';
           return 'checked ' + Math.round(hours / 24) + 'd ago';
+        };
+
+        const cacheAge = (ms) => {
+          const min = Math.round((Date.now() - ms) / 60000);
+          if (min < 1) return 'cached just now';
+          if (min < 60) return 'cached ' + min + 'm ago';
+          return 'cached ' + Math.round(min / 60) + 'h ago';
         };
 
         function setStatus(id, msg, kind) {
@@ -1118,6 +1126,10 @@
 
           if (previewData.truncated) parts.push('stopped at the 5,000 video cap');
 
+          if (previewData.fromCache && previewData.cachedAt) {
+            parts.push(cacheAge(previewData.cachedAt));
+          }
+
           if (previewData.taskTitle) parts.push('already a task: ' + previewData.taskTitle);
 
           return parts.join(', ');
@@ -1144,7 +1156,7 @@
           updateCount();
         }
 
-        async function fetchPreview(event) {
+        async function fetchPreview(event, force) {
           if (event) event.preventDefault();
           const id = parsePlaylistId($('url').value);
           if (!id) {
@@ -1167,7 +1179,10 @@
           window.clearTimeout(fetchTimer);
 
           try {
-            const data = await send({ type: 'preview', playlistId: id }, 180000);
+            const data = await send(
+              { type: 'preview', playlistId: id, force: force === true },
+              180000,
+            );
             if (!data || !Array.isArray(data.videos) || !data.videos.length) {
               throw new Error('That playlist has no videos in it.');
             }
@@ -1279,6 +1294,7 @@
         // ---------- wiring ----------
 
         $('fetch-form').addEventListener('submit', fetchPreview);
+        $('refresh').addEventListener('click', () => fetchPreview(null, true));
         $('apply').addEventListener('click', applyImport);
         $('back').addEventListener('click', backToForm);
         $('check-now').addEventListener('click', checkNow);
