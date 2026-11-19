@@ -46,6 +46,12 @@ Video ids that were in the playlist at import time but were not added, either be
 left them out or because they were unavailable. The background check never adds a known video,
 so a deliberate omission stays omitted.
 
+## Cached scrape
+
+A playlist read kept under the `scrapes` key with its fetch time. The panel reuses one younger
+than five minutes and can force a fresh read with Refresh. Cached scrapes hold playlist data
+only, never task data.
+
 ## Watched playlist
 
 A registry entry with `autoRefresh: true`. The background half checks it every `refreshHours`,
