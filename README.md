@@ -35,7 +35,8 @@ the playlist holds:
 - the total running time sits above the list, and each row shows its own length and age;
 - the All circle selects or clears every selectable row in the list;
 - the search box filters titles, and the All circle follows the rows you can see;
-- the last scrape is kept for five minutes, and Refresh reads from YouTube again.
+- the last scrape is kept for five minutes, and Refresh reads from YouTube again;
+- a failed read is retried twice, with the attempt shown in the status line.
 
 ## Options
 
@@ -76,7 +77,8 @@ playlists every 10 minutes. Each watched playlist keeps its own interval, so a d
 and a weekly one can live side by side.
 
 A check adds only videos that were not in the playlist when you last imported it. Videos you
-left out stay out. When a check finds something, it shows a snackbar if the app window has
+left out stay out. Background reads retry silently, and a check that keeps failing reports the
+error in the panel. When a check finds something, it shows a snackbar if the app window has
 focus and a system notification if it does not.
 
 The panel lists watched playlists with their interval, a Check now button and a Stop button. If
