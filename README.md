@@ -14,11 +14,11 @@ Task:      Top N Lists                 Links: youtube.com/playlist?list=PL…
 
 1. Run `npm run build`, or zip `manifest.json`, `plugin.js`, `index.html` and `icon.svg`
    yourself.
-2. In the app: Settings → Plugins → Choose Plugin File, then pick `plugin.zip`.
+2. In the app, go to Settings, then Plugins, then Choose Plugin File, and pick `plugin.zip`.
 3. Open the plugin from the plugin menu.
 4. The first import asks the operating system to allow node execution for this plugin.
-   YouTube sends no CORS headers, so the playlist page has to be read from the main process
-   rather than the page. Allow it once per device.
+   YouTube sends no CORS headers, so the app reads the playlist page from the main process.
+   Allow it once per device.
 5. Paste a link, or just the playlist ID (`PL0vfts4VzfNg…`), then press Fetch.
 
 Needs the Electron desktop app and Super Productivity 19.3.1 or newer.
@@ -35,32 +35,26 @@ the playlist holds:
 
 ## Options
 
-Only "Attach links" and "Add new videos to the existing task" are on by default. The rest live
+Only Attach links and Add new videos to the existing task are on by default. The rest live
 under Options in the form.
 
-**Attach links.** The playlist link goes on the task and each video link on its subtask. Turn
-it off if you only want the task structure.
-
-**Set time estimates from video lengths.** Each subtask gets its video's duration as its
-estimate. The main task gets none, so the total is not counted twice. The durations come with
-the playlist response, so this adds no extra requests.
-
-**Put the playlist description in the task notes.** Appends the description once, below
-whatever is already in the notes. Running the import again does not repeat it.
-
-**Subtask order.** Playlist order is the default and matches what you see on YouTube. Oldest
-first sorts by the age YouTube prints on each row. That age is relative ("6 years ago"), so
-videos of the same age stay in playlist order.
-
-**Create a project named after the playlist.** The task goes into a new project instead of the
-project you picked. Useful for course playlists. The option is unavailable when you are
-updating a task that already exists, since a task cannot be moved from the panel.
-
-**Check for new videos.** Stores the playlist in plugin data and runs a background check at the
-interval you set, between 1 and 168 hours. The default is 24 hours. See below.
-
-**Add new videos to the existing task.** On by default. Turn it off to make a second,
-independent task from the same playlist; the panel warns you when a task already exists.
+- Attach links puts the playlist link on the task and each video link on its subtask. Turn it
+  off if you only want the task structure.
+- Set time estimates from video lengths gives each subtask its video's duration. The main task
+  gets none, so the total is not counted twice. The durations come with the playlist response,
+  so this adds no extra requests.
+- Put the playlist description in the task notes appends the description once, below whatever
+  is already there. Re-importing does not repeat it.
+- Subtask order matches YouTube by default. Oldest first sorts by the age YouTube prints on
+  each row. That age is relative ("6 years ago"), so videos of the same age keep their playlist
+  order.
+- Create a project named after the playlist puts the task in a new project instead of the one
+  you picked. It helps with course playlists, and is unavailable when you are updating an
+  existing task since a task cannot be moved from the panel.
+- Check for new videos stores the playlist in plugin data and runs a background check every 1
+  to 168 hours. The default is 24, described below.
+- Add new videos to the existing task is on by default. Turn it off to make a second task from
+  the same playlist; the panel warns you when a task already exists.
 
 ## Importing the same playlist again
 
