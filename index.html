@@ -716,7 +716,7 @@
 
         <div class="toolbar">
           <label class="all-check" title="Select all visible videos">
-            <input id="select-all" type="checkbox" aria-label="Select all visible videos" />
+            <input id="select-all" type="checkbox" aria-label="All" />
             <span>All</span>
           </label>
           <button id="refresh" type="button" class="ghost mini" title="Read again from YouTube">Refresh</button>
@@ -1052,11 +1052,12 @@
             : 'none selected';
           $('apply').disabled = n === 0 && !canUpdate;
 
-          const visible = visibleVideos().filter(selectable);
+          const allVisible = visibleVideos();
+          const visible = allVisible.filter(selectable);
           const query = $('pv-search').value.trim();
           const shown = $('pv-shown');
           if (query && preview) {
-            shown.textContent = 'showing ' + visibleVideos().length + ' of ' + preview.videos.length;
+            shown.textContent = 'showing ' + allVisible.length + ' of ' + preview.videos.length;
             shown.hidden = false;
           } else {
             shown.textContent = '';
@@ -1134,7 +1135,7 @@
             open.type = 'button';
             open.className = 'open-btn';
             open.title = 'Open video';
-            open.setAttribute('aria-label', 'Open video: ' + video.title);
+            open.setAttribute('aria-label', 'Open video');
             const icon = document.createElement('span');
             icon.className = 'material-icons';
             icon.setAttribute('aria-hidden', 'true');
@@ -1192,7 +1193,7 @@
             );
           }
 
-          if (previewData.fromCache && previewData.cachedAt) {
+          if (previewData.cachedAt) {
             parts.push(cacheAge(previewData.cachedAt));
           }
 
@@ -1367,7 +1368,6 @@
           $('step-two').hidden = true;
           $('step-one').hidden = false;
           $('pv-list').textContent = '';
-          $('pv-search').value = '';
           preview = null;
           selected = new Set();
           setStatus('status-two', '');
