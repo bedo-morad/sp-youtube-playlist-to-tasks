@@ -419,7 +419,8 @@ function alreadyThere(tasks, parentId) {
   const titles = new Set();
   for (const t of tasks) {
     if (t.parentId !== parentId) continue;
-    titles.add(String(t.title || '').trim().toLowerCase());
+    // A numbered title still refers to the same video on a later import.
+    titles.add(String(t.title || '').replace(/^\d+\.\s+/, '').trim().toLowerCase());
     for (const a of t.attachments || []) {
       const id = videoIdFromPath(a.path);
       if (id) ids.add(id);
@@ -577,6 +578,7 @@ async function preview(id) {
           withLinks: entry.withLinks !== false,
           withEstimates: entry.withEstimates === true,
           withDescription: entry.withDescription === true,
+          numberTitles: entry.numberTitles === true,
           autoRefresh: entry.autoRefresh === true,
           refreshHours: refreshHoursOf(entry),
         }
@@ -589,9 +591,13 @@ async function apply(msg) {
   const playlistId = String(msg.playlistId || '');
   if (!/^[A-Za-z0-9_-]{10,}$/.test(playlistId)) throw new Error('Bad playlist id.');
 
-  const videos = (Array.isArray(msg.videos) ? msg.videos : []).filter(
-    (v) => v && typeof v.videoId === 'string' && typeof v.title === 'string',
-  );
+  const videos = (Array.isArray(msg.videos) ? msg.videos : [])
+    .filter((v) => v && typeof v.videoId === 'string' && typeof v.title === 'string')
+    .map((v, i) =>
+      msg.numberTitles === true
+        ? Object.assign({}, v, { title: i + 1 + '. ' + v.title })
+        : v,
+    );
 
   // A task the user deleted between the preview and the import must not be
   // written to, so fall back to creating a fresh one.
@@ -650,6 +656,7 @@ async function apply(msg) {
     withLinks: msg.withLinks !== false,
     withEstimates: msg.withEstimates === true,
     withDescription: msg.withDescription === true,
+    numberTitles: msg.numberTitles === true,
     refreshHours: refreshHoursOf({ refreshHours: msg.refreshHours }),
     autoRefresh: msg.autoRefresh === true,
     // Videos the user left out stay out: the background check only adds videos
