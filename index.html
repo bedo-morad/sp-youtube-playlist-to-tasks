@@ -522,6 +522,14 @@
               </label>
 
               <label class="check">
+                <input id="description" type="checkbox" />
+                <span>
+                  Put the playlist description in the task notes
+                  <span class="hint">Added once. Your own notes stay where they are.</span>
+                </span>
+              </label>
+
+              <label class="check">
                 <input id="new-project" type="checkbox" />
                 <span>
                   Create a project named after the playlist
@@ -888,6 +896,7 @@
           const settings = previewData.settings;
           $('links').checked = settings ? settings.withLinks : true;
           $('estimates').checked = settings ? settings.withEstimates : false;
+          $('description').checked = settings ? settings.withDescription : false;
           $('auto-refresh').checked = settings ? settings.autoRefresh : false;
         }
 
@@ -1008,6 +1017,8 @@
                 newProject: $('new-project').checked && !taskId,
                 withLinks: $('links').checked,
                 withEstimates: $('estimates').checked,
+                withDescription: $('description').checked,
+                description: preview.description || '',
                 autoRefresh: $('auto-refresh').checked,
                 knownIds: preview.videos
                   .filter((v) => !v.unavailable)

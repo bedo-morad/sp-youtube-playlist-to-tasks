@@ -219,6 +219,12 @@ const NODE_SCRIPT = `
       (htmlTitle || '').replace(/\\s*-\\s*YouTube\\s*$/, '').trim() ||
       playlistId;
     const declared = parseInt(text(header.numVideosText).replace(/[^\\d]/g, ''), 10) || null;
+    const description =
+      text(
+        data.metadata &&
+          data.metadata.playlistMetadataRenderer &&
+          data.metadata.playlistMetadataRenderer.description,
+      ) || '';
 
     const seen = new Set();
     const videos = [];
@@ -264,6 +270,7 @@ const NODE_SCRIPT = `
     return {
       playlistId: playlistId,
       title: title,
+      description: description,
       videos: videos,
       declared: declared,
       truncated: videos.length >= MAX,
@@ -425,6 +432,8 @@ async function writeIntoTask(opts) {
     videos,
     withLinks,
     withEstimates,
+    withDescription,
+    description,
   } = opts;
   let { taskId } = opts;
 
@@ -443,6 +452,18 @@ async function writeIntoTask(opts) {
   const seen = alreadyThere(tasks, taskId);
   const todo = videos.filter((v) => !isPresent(seen, v));
   await addVideos(taskId, todo, withLinks && linkState !== 'no-links', withEstimates);
+
+  // Append only when missing, so re-imports do not stack the same text and the
+  // user's own notes survive.
+  if (withDescription && description) {
+    const task = (await api.getTasks()).find((t) => t.id === taskId);
+    const notes = task && typeof task.notes === 'string' ? task.notes : '';
+    if (!notes.includes(description)) {
+      await api.updateTask(taskId, {
+        notes: (notes.trim() ? notes.trimEnd() + '\n\n' : '') + description,
+      });
+    }
+  }
 
   // A host that drops the attachments field still gets the links somewhere.
   if (withLinks && linkState === 'no-links') {
@@ -483,6 +504,7 @@ async function preview(id) {
   return {
     playlistId: id,
     title: data.title,
+    description: data.description || '',
     declared: data.declared,
     truncated: data.truncated,
     taskId: found.task ? found.task.id : null,
@@ -491,6 +513,7 @@ async function preview(id) {
       ? {
           withLinks: entry.withLinks !== false,
           withEstimates: entry.withEstimates === true,
+          withDescription: entry.withDescription === true,
           autoRefresh: entry.autoRefresh === true,
         }
       : null,
@@ -539,6 +562,8 @@ async function apply(msg) {
     projectId: projectId,
     withLinks: msg.withLinks !== false,
     withEstimates: msg.withEstimates === true,
+    withDescription: msg.withDescription === true,
+    description: typeof msg.description === 'string' ? msg.description : '',
   });
 
   if (newProjectId && result.linkState !== 'no-links') {
@@ -560,6 +585,7 @@ async function apply(msg) {
     title: String(msg.playlistTitle || msg.title || '').trim(),
     withLinks: msg.withLinks !== false,
     withEstimates: msg.withEstimates === true,
+    withDescription: msg.withDescription === true,
     autoRefresh: msg.autoRefresh === true,
     // Videos the user left out stay out: the background check only adds videos
     // the playlist did not have when this import ran.
