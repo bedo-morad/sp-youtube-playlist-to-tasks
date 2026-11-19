@@ -682,18 +682,21 @@ async function refreshEntry(entry) {
 
   await addVideos(entry.taskId, missing, entry.withLinks === true, entry.withEstimates === true);
 
+  const name = entry.title || data.title;
+  const body = missing.length + (missing.length === 1 ? ' new video' : ' new videos') + ' from ' + name;
   try {
-    api.showSnack({
-      msg:
-        missing.length +
-        (missing.length === 1 ? ' new video' : ' new videos') +
-        ' from ' +
-        (entry.title || data.title),
-      type: 'INFO',
-      ico: 'playlist_play',
-    });
+    // A snack is easy to miss when the window is behind something else.
+    const visible =
+      typeof document !== 'undefined' && typeof document.hasFocus === 'function'
+        ? document.hasFocus()
+        : true;
+    if (visible) {
+      api.showSnack({ msg: body, type: 'INFO', ico: 'playlist_play' });
+    } else {
+      api.notify({ title: 'YouTube playlists', body: body, ico: 'playlist_play' });
+    }
   } catch (e) {
-    /* snack is cosmetic */
+    /* snack and notify are cosmetic */
   }
   return missing.length;
 }
