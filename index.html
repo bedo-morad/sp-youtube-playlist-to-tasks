@@ -341,6 +341,12 @@
         font-variant-numeric: tabular-nums;
       }
 
+      .toolbar .shown {
+        color: var(--fg-muted);
+        font-size: var(--font-size-xs, 12px);
+        font-variant-numeric: tabular-nums;
+      }
+
       .all-check {
         display: inline-flex;
         align-items: center;
@@ -688,7 +694,19 @@
             <input id="select-all" type="checkbox" aria-label="Select all visible videos" />
             <span>All</span>
           </label>
+          <span id="pv-shown" class="shown" hidden></span>
           <span id="pv-count" class="count" aria-live="polite"></span>
+        </div>
+
+        <div class="field">
+          <input
+            id="pv-search"
+            type="text"
+            spellcheck="false"
+            autocomplete="off"
+            aria-label="Search video titles"
+            placeholder="Search video titles"
+          />
         </div>
 
         <ul id="pv-list" class="list" aria-label="Videos in this playlist"></ul>
@@ -959,7 +977,9 @@
         }
 
         function visibleVideos() {
-          return orderedVideos();
+          const q = $('pv-search').value.trim().toLowerCase();
+          const list = orderedVideos();
+          return q ? list.filter((v) => String(v.title).toLowerCase().includes(q)) : list;
         }
 
         function clampHours(value) {
@@ -984,6 +1004,15 @@
           $('apply').disabled = n === 0 && !canUpdate;
 
           const visible = visibleVideos().filter(selectable);
+          const query = $('pv-search').value.trim();
+          const shown = $('pv-shown');
+          if (query && preview) {
+            shown.textContent = 'showing ' + visibleVideos().length + ' of ' + preview.videos.length;
+            shown.hidden = false;
+          } else {
+            shown.textContent = '';
+            shown.hidden = true;
+          }
           const allOn = visible.length > 0 && visible.every((v) => selected.has(v.videoId));
           const someOn = visible.some((v) => selected.has(v.videoId));
           const master = $('select-all');
@@ -996,7 +1025,17 @@
           const list = $('pv-list');
           list.textContent = '';
 
-          for (const video of visibleVideos()) {
+          const videos = visibleVideos();
+          if (!videos.length) {
+            const empty = document.createElement('li');
+            empty.className = 'off';
+            empty.textContent = 'No videos match that search.';
+            list.appendChild(empty);
+            updateCount();
+            return;
+          }
+
+          for (const video of videos) {
             const li = document.createElement('li');
             const ok = selectable(video);
             if (!ok) li.className = 'off';
@@ -1138,6 +1177,7 @@
 
             $('pv-title').textContent = data.title || 'Playlist';
             $('pv-meta').textContent = describe(data);
+            $('pv-search').value = '';
             prefill(data);
             renderList();
             syncExistingNote();
@@ -1230,6 +1270,7 @@
           $('step-two').hidden = true;
           $('step-one').hidden = false;
           $('pv-list').textContent = '';
+          $('pv-search').value = '';
           preview = null;
           selected = new Set();
           setStatus('status-two', '');
@@ -1257,6 +1298,12 @@
         $('update').addEventListener('change', syncExistingNote);
 
         $('order').addEventListener('change', () => {
+          if (!preview) return;
+          renderList();
+          $('pv-list').scrollTop = 0;
+        });
+
+        $('pv-search').addEventListener('input', () => {
           if (!preview) return;
           renderList();
           $('pv-list').scrollTop = 0;

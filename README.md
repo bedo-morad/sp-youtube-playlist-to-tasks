@@ -33,7 +33,8 @@ the playlist holds:
 - videos already in the task are marked "in task" and cannot be selected again;
 - videos YouTube reports as private or deleted are greyed out and skipped;
 - the total running time sits above the list, and each row shows its own length and age;
-- the All circle selects or clears every selectable row in the list.
+- the All circle selects or clears every selectable row in the list;
+- the search box filters titles, and the All circle follows the rows you can see.
 
 ## Options
 
