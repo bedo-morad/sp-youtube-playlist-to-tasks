@@ -139,9 +139,9 @@ is an iframe, so pick it in the DevTools frame selector to see its console.
    zip on Node 22, and publishes the release with a versioned zip, its sha256 and the commit
    notes since the previous tag.
 
-The `main` branch and `v*` tags are protected. `main` takes only pull requests with one review
-and a passing CI run, so use a branch for changes. Only the repository owner can create release
-tags.
+The `main` branch and `v*` tags are protected. `main` takes only pull requests with a passing CI
+run, so use a branch for changes. You can merge your own pull requests. Only the repository owner
+can create release tags.
 
 ## Privacy
 
