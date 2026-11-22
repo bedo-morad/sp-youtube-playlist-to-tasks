@@ -358,10 +358,15 @@
 
       .all-check input {
         appearance: none;
+        -webkit-appearance: none;
         display: grid;
         place-content: center;
+        flex: 0 0 auto;
         width: 20px;
         height: 20px;
+        /* The host UI kit pads every input, which would turn the circle into an
+           egg: the padding forces the border box wider than it is tall. */
+        padding: 0;
         margin: 0;
         border: 2px solid var(--fg-muted);
         border-radius: 50%;
