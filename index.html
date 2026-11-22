@@ -1018,6 +1018,7 @@
         let preview = null;
         let selected = new Set();
         let fetchTimer = null;
+        let optionsTouched = false;
 
         function selectable(video) {
           return !video.present && !video.unavailable;
@@ -1170,14 +1171,20 @@
         }
 
         function prefill(previewData) {
+          // The options sit above Fetch, so they are already set by the time a
+          // preview lands. Only fill in an existing import's saved settings
+          // when the user has not changed any of them.
           const settings = previewData.settings;
-          $('links').checked = settings ? settings.withLinks : true;
-          $('estimates').checked = settings ? settings.withEstimates : false;
-          $('description').checked = settings ? settings.withDescription : false;
-          $('number-titles').checked = settings ? settings.numberTitles === true : false;
-          $('auto-refresh').checked = settings ? settings.autoRefresh : false;
-          const hours = settings && Number(settings.refreshHours) > 0 ? Number(settings.refreshHours) : 24;
-          $('refresh-hours').value = String(hours);
+          if (settings && !optionsTouched) {
+            $('links').checked = settings.withLinks;
+            $('estimates').checked = settings.withEstimates;
+            $('description').checked = settings.withDescription;
+            $('number-titles').checked = settings.numberTitles === true;
+            $('auto-refresh').checked = settings.autoRefresh;
+            const hours =
+              Number(settings.refreshHours) > 0 ? Number(settings.refreshHours) : 24;
+            $('refresh-hours').value = String(hours);
+          }
           syncIntervalField();
         }
 
@@ -1464,6 +1471,26 @@
         $('new-project').addEventListener('change', () => {
           $('project').disabled = $('new-project').checked;
         });
+
+        // Any prefilled option the user changed before a fetch is their choice,
+        // so a saved import's settings must not overwrite it when the preview
+        // lands.
+        const prefilledOptions = [
+          'links',
+          'estimates',
+          'description',
+          'number-titles',
+          'auto-refresh',
+          'refresh-hours',
+        ];
+        for (const id of prefilledOptions) {
+          $(id).addEventListener('change', () => {
+            optionsTouched = true;
+          });
+          $(id).addEventListener('input', () => {
+            optionsTouched = true;
+          });
+        }
 
         $('update').addEventListener('change', syncExistingNote);
 
