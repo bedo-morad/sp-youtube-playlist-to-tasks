@@ -470,8 +470,10 @@
         color: var(--fg);
       }
 
-      .open-btn .material-icons {
-        font-size: 18px;
+      .open-btn svg {
+        width: 18px;
+        height: 18px;
+        fill: currentColor;
       }
 
       .badge {
@@ -1148,11 +1150,18 @@
             open.className = 'open-btn';
             open.title = 'Open video';
             open.setAttribute('aria-label', 'Open video');
-            const icon = document.createElement('span');
-            // The host injects its UI kit, including the Material Symbols font.
-            icon.className = 'material-icons';
+            // Inline SVG, not the host's icon font: app versions before the
+            // shared fonts render a ligature name as plain text.
+            const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            icon.setAttribute('viewBox', '0 0 24 24');
             icon.setAttribute('aria-hidden', 'true');
-            icon.textContent = 'open_in_new';
+            icon.setAttribute('focusable', 'false');
+            const iconPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            iconPath.setAttribute(
+              'd',
+              'M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z',
+            );
+            icon.appendChild(iconPath);
             open.appendChild(icon);
             open.addEventListener('click', () => openVideo(video.videoId));
             li.appendChild(open);
