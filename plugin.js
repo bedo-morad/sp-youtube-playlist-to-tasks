@@ -617,7 +617,7 @@ async function writeIntoTask(opts) {
 
 // ---------- requests from the panel ----------
 
-async function preview(id, force) {
+async function buildDraft(id, force) {
   const { data, fromCache } = await readScrape(id, force === true);
   const found = await findExistingTask(id);
   const entry = (await loadRegistry()).find((e) => e.playlistId === id) || null;
@@ -675,7 +675,7 @@ async function apply(msg) {
         : v,
     );
 
-  // A task the user deleted between the preview and the import must not be
+  // A task the user deleted between the draft and the import must not be
   // written to, so fall back to creating a fresh one.
   let taskId = msg.taskId || null;
   if (taskId) {
@@ -827,7 +827,7 @@ const HANDLERS = {
     entries: await loadRegistry(),
     canRefresh: typeof api.executeNodeScript === 'function',
   }),
-  preview: (msg) => preview(String(msg.playlistId || ''), msg.force === true),
+  draft: (msg) => buildDraft(String(msg.playlistId || ''), msg.force === true),
   apply: (msg) => apply(msg),
   checkNow: async () => ({ added: await refreshAll(true) }),
   forget: (msg) => forget(String(msg.playlistId || '')),

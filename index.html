@@ -1020,11 +1020,10 @@
           }
         }
 
-        // ---------- preview ----------
+        // ---------- draft ----------
 
-        let preview = null;
+        let draft = null;
         let selected = new Set();
-        let fetchTimer = null;
         let optionsTouched = false;
 
         function selectable(video) {
@@ -1035,7 +1034,7 @@
            YouTube prints on the page; equal ages keep the playlist order because
            Array.sort is stable. */
         function orderedVideos() {
-          const list = preview ? preview.videos.slice() : [];
+          const list = draft ? draft.videos.slice() : [];
           if ($('order').value !== 'oldest') return list;
           return list.sort((a, b) => {
             const ad = typeof a.publishedDays === 'number' ? a.publishedDays : -1;
@@ -1065,9 +1064,9 @@
 
         function updateCount() {
           const n = selected.size;
-          const canUpdate = !!(preview && preview.taskId && $('update').checked);
+          const canUpdate = !!(draft && draft.taskId && $('update').checked);
           $('pv-count').textContent = n
-            ? n + ' of ' + preview.videos.length + ' selected'
+            ? n + ' of ' + draft.videos.length + ' selected'
             : 'none selected';
           $('apply').disabled = n === 0 && !canUpdate;
 
@@ -1075,8 +1074,8 @@
           const visible = allVisible.filter(selectable);
           const query = $('pv-search').value.trim();
           const shown = $('pv-shown');
-          if (query && preview) {
-            shown.textContent = 'showing ' + allVisible.length + ' of ' + preview.videos.length;
+          if (query && draft) {
+            shown.textContent = 'showing ' + allVisible.length + ' of ' + draft.videos.length;
             shown.hidden = false;
           } else {
             shown.textContent = '';
@@ -1184,11 +1183,11 @@
           updateCount();
         }
 
-        function prefill(previewData) {
+        function prefill(draftData) {
           // The options sit above Fetch, so they are already set by the time a
-          // preview lands. Only fill in an existing import's saved settings
+          // draft lands. Only fill in an existing import's saved settings
           // when the user has not changed any of them.
-          const settings = previewData.settings;
+          const settings = draftData.settings;
           if (settings && !optionsTouched) {
             $('links').checked = settings.withLinks;
             $('estimates').checked = settings.withEstimates;
@@ -1202,42 +1201,42 @@
           syncIntervalField();
         }
 
-        function describe(previewData) {
-          const usable = previewData.videos.filter((v) => !v.unavailable);
+        function describe(draftData) {
+          const usable = draftData.videos.filter((v) => !v.unavailable);
           const parts = [count(usable.length, 'video', 'videos')];
 
           const total = usable.reduce((sum, v) => sum + (v.durationSec || 0), 0);
           if (total) parts.push(formatSpan(total) + ' in total');
 
-          const unavailable = previewData.videos.length - usable.length;
+          const unavailable = draftData.videos.length - usable.length;
           if (unavailable) parts.push(unavailable + ' unavailable');
 
-          if (previewData.truncated) parts.push('stopped at the 5,000 video cap');
+          if (draftData.truncated) parts.push('stopped at the 5,000 video cap');
 
           if (
-            Number.isFinite(previewData.declared) &&
-            previewData.declared > previewData.videos.length
+            Number.isFinite(draftData.declared) &&
+            draftData.declared > draftData.videos.length
           ) {
             parts.push(
               'YouTube reports ' +
-                count(previewData.declared, 'video', 'videos') +
+                count(draftData.declared, 'video', 'videos') +
                 ', read ' +
-                previewData.videos.length,
+                draftData.videos.length,
             );
           }
 
-          if (previewData.cachedAt) {
-            parts.push(cacheAge(previewData.cachedAt));
+          if (draftData.cachedAt) {
+            parts.push(cacheAge(draftData.cachedAt));
           }
 
-          if (previewData.taskTitle) parts.push('already a task: ' + previewData.taskTitle);
+          if (draftData.taskTitle) parts.push('already a task: ' + draftData.taskTitle);
 
           return parts.join(', ');
         }
 
         /* The update toggle changes what the import will do to an existing task. */
         function syncExistingNote() {
-          const exists = !!(preview && preview.taskId);
+          const exists = !!(draft && draft.taskId);
           const update = $('update').checked;
 
           $('apply').textContent = exists && update ? 'Update task' : 'Add videos';
@@ -1276,7 +1275,6 @@
           const btn = $('fetch');
           btn.disabled = true;
           setStatus('status-one', 'Reading the playlist…');
-          window.clearTimeout(fetchTimer);
 
           try {
             const attempts = 3;
@@ -1290,7 +1288,7 @@
               );
               try {
                 data = await send(
-                  { type: 'preview', playlistId: id, force: force === true || attempt > 1 },
+                  { type: 'draft', playlistId: id, force: force === true || attempt > 1 },
                   180000,
                 );
                 break;
@@ -1308,7 +1306,7 @@
               throw new Error('That playlist has no videos in it.');
             }
 
-            preview = data;
+            draft = data;
             selected = new Set(data.videos.filter(selectable).map((v) => v.videoId));
 
             $('pv-title').textContent = data.title || 'Playlist';
@@ -1331,7 +1329,7 @@
         }
 
         async function applyImport() {
-          if (!preview) return;
+          if (!draft) return;
 
           const chosen = orderedVideos()
             .filter((v) => selected.has(v.videoId))
@@ -1341,7 +1339,7 @@
               durationSec: v.durationSec || null,
             }));
 
-          const taskId = $('update').checked ? preview.taskId || null : null;
+          const taskId = $('update').checked ? draft.taskId || null : null;
 
           const btn = $('apply');
           btn.disabled = true;
@@ -1351,8 +1349,8 @@
             const result = await send(
               {
                 type: 'apply',
-                playlistId: preview.playlistId,
-                playlistTitle: preview.title,
+                playlistId: draft.playlistId,
+                playlistTitle: draft.title,
                 videos: chosen,
                 title: $('name').value.trim(),
                 projectId: $('project').value || null,
@@ -1361,13 +1359,11 @@
                 withLinks: $('links').checked,
                 withEstimates: $('estimates').checked,
                 withDescription: $('description').checked,
-                description: preview.description || '',
+                description: draft.description || '',
                 numberTitles: $('number-titles').checked,
                 autoRefresh: $('auto-refresh').checked,
                 refreshHours: clampHours($('refresh-hours').value),
-                knownIds: preview.videos
-                  .filter((v) => !v.unavailable)
-                  .map((v) => v.videoId),
+                knownIds: draft.videos.map((v) => v.videoId),
               },
               180000,
             );
@@ -1383,7 +1379,7 @@
 
             try {
               host().showSnack({
-                msg: 'Saved ' + (result.title || preview.title),
+                msg: 'Saved ' + (result.title || draft.title),
                 type: 'SUCCESS',
                 ico: 'playlist_play',
               });
@@ -1406,13 +1402,13 @@
           $('step-two').hidden = true;
           $('step-one').hidden = false;
           $('pv-list').textContent = '';
-          preview = null;
+          draft = null;
           selected = new Set();
           setStatus('status-two', '');
         }
 
         function handlePreviewKeys(e) {
-          if ($('step-two').hidden || !preview) return;
+          if ($('step-two').hidden || !draft) return;
           const target = e.target;
 
           if (e.key === 'Escape') {
@@ -1475,7 +1471,7 @@
         $('check-now').addEventListener('click', checkNow);
 
         $('select-all').addEventListener('change', () => {
-          if (!preview) return;
+          if (!draft) return;
           const ids = visibleVideos().filter(selectable).map((v) => v.videoId);
           if ($('select-all').checked) ids.forEach((id) => selected.add(id));
           else ids.forEach((id) => selected.delete(id));
@@ -1487,7 +1483,7 @@
         });
 
         // Any prefilled option the user changed before a fetch is their choice,
-        // so a saved import's settings must not overwrite it when the preview
+        // so a saved import's settings must not overwrite it when the draft
         // lands.
         const prefilledOptions = [
           'links',
@@ -1509,13 +1505,13 @@
         $('update').addEventListener('change', syncExistingNote);
 
         $('order').addEventListener('change', () => {
-          if (!preview) return;
+          if (!draft) return;
           renderList();
           $('pv-list').scrollTop = 0;
         });
 
         $('pv-search').addEventListener('input', () => {
-          if (!preview) return;
+          if (!draft) return;
           renderList();
           $('pv-list').scrollTop = 0;
         });

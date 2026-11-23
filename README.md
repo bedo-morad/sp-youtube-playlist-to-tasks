@@ -1,4 +1,4 @@
-# YouTube Playlist to Tasks for Super Productivity
+# YouTube Playlist to Tasks
 
 [![CI](https://github.com/bedo-morad/sp-youtube-playlist-to-tasks/actions/workflows/ci.yml/badge.svg)](https://github.com/bedo-morad/sp-youtube-playlist-to-tasks/actions/workflows/ci.yml)
 

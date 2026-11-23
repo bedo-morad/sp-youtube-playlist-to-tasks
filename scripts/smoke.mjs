@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Offline test of the background half. It loads plugin.js with a fake PluginAPI,
 // feeds it a canned playlist in place of the scraper, and walks the same flow the
-// panel drives: preview, import, re-import, background check, forget.
+// panel drives: draft, import, re-import, background check, forget.
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -87,16 +87,16 @@ const check = (label, ok, detail) => {
 
 await api.__ready();
 
-// ---------- preview ----------
+// ---------- draft ----------
 
-const p1 = await send({ type: 'preview', playlistId: PLAYLIST.playlistId });
-check('preview lists every video', p1.videos.length === 4);
-check('preview carries durations', p1.videos.filter((v) => v.durationSec).length === 3);
-check('preview carries ages', p1.videos[0].publishedDays === 2200);
-check('preview carries the description', p1.description === PLAYLIST.description);
+const p1 = await send({ type: 'draft', playlistId: PLAYLIST.playlistId });
+check('draft lists every video', p1.videos.length === 4);
+check('draft carries durations', p1.videos.filter((v) => v.durationSec).length === 3);
+check('draft carries ages', p1.videos[0].publishedDays === 2200);
+check('draft carries the description', p1.description === PLAYLIST.description);
 check('unavailable video flagged', p1.videos.find((v) => v.videoId === 'vid3').unavailable);
 check('no task before the first import', p1.taskId === null);
-check('first preview reads YouTube', p1.fromCache === false);
+check('first draft reads YouTube', p1.fromCache === false);
 
 // ---------- first import ----------
 
@@ -138,15 +138,16 @@ check('registry has one entry', state.entries.length === 1);
 check('registry keeps 12 hours', state.entries[0].refreshHours === 12);
 check('registry keeps the description flag', state.entries[0].withDescription === true);
 check('registry knows the skipped video', (state.entries[0].knownIds || []).includes('vid4'));
+check('registry knows the unavailable video', (state.entries[0].knownIds || []).includes('vid3'));
 
 // ---------- re-import ----------
 
-const p2 = await send({ type: 'preview', playlistId: PLAYLIST.playlistId });
-check('preview finds the existing task', p2.taskId === parent.id);
-check('preview marks the two imported videos', p2.videos.filter((v) => v.present).length === 2);
-check('second preview uses the cache', p2.fromCache === true);
-const forced = await send({ type: 'preview', playlistId: PLAYLIST.playlistId, force: true });
-check('forced preview reads YouTube again', forced.fromCache === false);
+const p2 = await send({ type: 'draft', playlistId: PLAYLIST.playlistId });
+check('draft finds the existing task', p2.taskId === parent.id);
+check('draft marks the two imported videos', p2.videos.filter((v) => v.present).length === 2);
+check('second draft uses the cache', p2.fromCache === true);
+const forced = await send({ type: 'draft', playlistId: PLAYLIST.playlistId, force: true });
+check('forced draft reads YouTube again', forced.fromCache === false);
 
 const realExecute = api.executeNodeScript;
 let failedReads = 0;
@@ -156,7 +157,7 @@ api.executeNodeScript = async () => {
 };
 let permanentError = null;
 try {
-  await send({ type: 'preview', playlistId: PLAYLIST.playlistId, force: true });
+  await send({ type: 'draft', playlistId: PLAYLIST.playlistId, force: true });
 } catch (e) {
   permanentError = e;
 }
@@ -236,5 +237,5 @@ if (failures) {
   console.error(`${failures} check(s) failed`);
   process.exit(1);
 }
-console.log('ok   preview, import, re-import, background check and forget');
+console.log('ok   draft, import, re-import, background check and forget');
 process.exit(0);
