@@ -1024,7 +1024,6 @@
 
         let draft = null;
         let selected = new Set();
-        let fetchTimer = null;
         let optionsTouched = false;
 
         function selectable(video) {
@@ -1276,7 +1275,6 @@
           const btn = $('fetch');
           btn.disabled = true;
           setStatus('status-one', 'Reading the playlist…');
-          window.clearTimeout(fetchTimer);
 
           try {
             const attempts = 3;
