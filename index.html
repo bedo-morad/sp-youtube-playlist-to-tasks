@@ -1365,9 +1365,7 @@
                 numberTitles: $('number-titles').checked,
                 autoRefresh: $('auto-refresh').checked,
                 refreshHours: clampHours($('refresh-hours').value),
-                knownIds: draft.videos
-                  .filter((v) => !v.unavailable)
-                  .map((v) => v.videoId),
+                knownIds: draft.videos.map((v) => v.videoId),
               },
               180000,
             );

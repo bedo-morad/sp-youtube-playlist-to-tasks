@@ -138,6 +138,7 @@ check('registry has one entry', state.entries.length === 1);
 check('registry keeps 12 hours', state.entries[0].refreshHours === 12);
 check('registry keeps the description flag', state.entries[0].withDescription === true);
 check('registry knows the skipped video', (state.entries[0].knownIds || []).includes('vid4'));
+check('registry knows the unavailable video', (state.entries[0].knownIds || []).includes('vid3'));
 
 // ---------- re-import ----------
 
