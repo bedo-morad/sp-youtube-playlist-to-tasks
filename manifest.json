@@ -1,7 +1,7 @@
 {
   "id": "youtube-playlist-import",
   "name": "YouTube Playlist to Tasks",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "manifestVersion": 1,
   "minSupVersion": "19.3.1",
   "description": "Imports a YouTube playlist as a task with one subtask per video. Shows a preview before writing, and can attach links, set time estimates and re-check for new videos.",
