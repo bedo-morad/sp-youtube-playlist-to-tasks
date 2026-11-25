@@ -49,6 +49,9 @@ const api = {
       parentId: data.parentId || null,
       projectId: data.projectId || null,
       timeEstimate: data.timeEstimate || 0,
+      // The real host assigns today's dueDay when the caller omits the key
+      // while the Today context is active. Model that so the test catches it.
+      dueDay: 'dueDay' in data ? data.dueDay ?? null : '2026-11-25',
       attachments: [],
       notes: '',
     });
@@ -132,6 +135,8 @@ check('playlist link on the task', parent.attachments.length === 1);
 check('subtasks have links', kids.every((k) => k.attachments.length === 1));
 check('subtasks have estimates', kids.every((k) => k.timeEstimate > 0));
 check('description appended once', parent.notes === PLAYLIST.description, JSON.stringify(parent.notes));
+check('the imported task is not scheduled', parent.dueDay === null, JSON.stringify(parent.dueDay));
+check('imported subtasks are not scheduled', kids.every((k) => k.dueDay === null), JSON.stringify(kids.map((k) => k.dueDay)));
 
 const state = await send({ type: 'state' });
 check('registry has one entry', state.entries.length === 1);
@@ -207,6 +212,7 @@ delete globalThis.document;
 check('check now adds only the new video', checkNow.added === 1, JSON.stringify(checkNow));
 const fresh = tasks.find((t) => t.parentId === parent.id && t.title === 'Brand new video');
 check('new video got an estimate', fresh && fresh.timeEstimate === 120000);
+check('background subtask is not scheduled', fresh && fresh.dueDay === null, JSON.stringify(fresh && fresh.dueDay));
 check('unfocused window gets a notification', notifications === 1 && snacks === 0);
 
 // Same check with the window in front: a snackbar, no notification.

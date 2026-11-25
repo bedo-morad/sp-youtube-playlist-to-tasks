@@ -545,6 +545,10 @@ async function addVideos(parentId, videos, withLinks, withEstimates) {
     const data = {
       title: v.title,
       parentId: parentId,
+      // The host assigns today's dueDay when the key is missing and the Today
+      // context is active. A video subtask must stay unscheduled, so send the
+      // key explicitly as null.
+      dueDay: null,
       isIgnoreShortSyntax: true,
     };
     if (withEstimates && v.durationSec) data.timeEstimate = v.durationSec * 1000;
@@ -574,6 +578,8 @@ async function writeIntoTask(opts) {
     taskId = await api.addTask({
       title: playlistTitle,
       projectId: opts.projectId || null,
+      // Same guard as the subtasks: an import must not land on Today by default.
+      dueDay: null,
       isIgnoreShortSyntax: true,
     });
   }
